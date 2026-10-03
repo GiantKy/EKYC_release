@@ -1,47 +1,36 @@
 # ==============================================================================
-# eKYC Release Face ID, Anti-Spoofing & Liveness Detection Pipeline
+# eKYC Release: Face ID, Anti-Spoofing Ensemble & Liveness Detection Pipeline
 # ==============================================================================
 
 # Core Computer Vision, Scientific Computing & Image Processing
+# BẮT BUỘC: Giữ NumPy < 2.0.0 để tránh xung đột C-ABI với MediaPipe Tasks API
+numpy>=1.24.3,<2.0.0
 opencv-python>=4.8.0.76
-numpy>=1.24.3
-scipy>=1.10.0
+scipy>=1.10.0,<1.14.0
 Pillow>=9.5.0
 
-# Face Landmark & Pose Estimation (Hỗ trợ MediaPipe Tasks API >= 0.10.14)
+# Face Landmark & 3D Pose Estimation (MediaPipe Tasks API >= 0.10.14)
 mediapipe>=0.10.14
 
-# Deep Learning & Face Detection (YOLO)
+# Deep Learning & Face Detection (YOLO / Ultralytics)
 ultralytics>=8.0.0
 
-# Roboflow Inference & RF-DETR Anti-Spoofing (Ensemble Engine)
-inference>=0.9.0
-inference-sdk>=0.0.9
-roboflow>=1.1.0
-supervision>=0.20.0
-
-# ONNX Runtime (Hỗ trợ suy luận mô hình ONNX / DirectML trên Windows/Linux)
-onnx>=1.14.0
-onnxruntime>=1.16.0
-
-# PyTorch Ecosystem (MiniFASNet & MobileNetV2 Anti-Spoofing)
-# Lưu ý: Cài đặt bản CUDA tương ứng nếu có GPU NVIDIA (Xem chi tiết tại README.md)
+# PyTorch Ecosystem (Suy luận mô hình YOLO Face Detection & Anti-Spoofing)
+# Lưu ý: Cài đặt bản CUDA tương ứng nếu có GPU NVIDIA (xem chi tiết tại README.md)
 torch>=2.0.0
 torchvision>=0.15.0
 
-# Hugging Face & Safetensors (Hỗ trợ model MobileNetV2 Anti-Spoof)
-transformers>=4.30.0
-safetensors>=0.4.0
+# Roboflow Inference & ONNX Runtime (RF-DETR Transformer & Occlusion Detector)
+inference>=0.9.0
+onnx>=1.14.0
+onnxruntime>=1.16.0
 
-# Utilities & Data Processing
-tqdm>=4.65.0
-pandas>=2.0.0
-requests>=2.28.0
-pydantic>=2.0.0
-
-# Web & Microservice API (FastAPI AI Server & WebSocket)
+# Web Framework & Microservice API (FastAPI AI Server)
 fastapi>=0.100.0
 uvicorn[standard]>=0.23.0
+pydantic>=2.0.0
 python-multipart>=0.0.6
-websockets>=11.0.0
 aiofiles>=23.0.0
+
+# Utilities
+requests>=2.28.0
