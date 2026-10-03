@@ -3279,13 +3279,13 @@
         barOval.style.width = `${Math.min(100, Math.max(0, pct))}%`;
       }
 
-      if (pct >= 30 && pct <= 90) {
+      if (pct >= 25 && pct <= 92) {
         if (pillOval) {
           pillOval.className = 'telemetry-pill pass';
           pillOval.textContent = 'CHUẨN';
         }
         if (barOval) barOval.className = 'telemetry-bar-fill pass';
-      } else if (pct < 30) {
+      } else if (pct < 25) {
         if (pillOval) {
           pillOval.className = 'telemetry-pill warn';
           pillOval.textContent = 'QUÁ XA';
@@ -3308,10 +3308,10 @@
       if (valYaw) valYaw.textContent = `${yaw >= 0 ? '+' : ''}${yaw.toFixed(1)}°`;
       const absYaw = Math.abs(yaw);
       if (pillYaw) {
-        if (absYaw <= 12) {
+        if (absYaw <= 14) {
           pillYaw.className = 'telemetry-pill pass';
           pillYaw.textContent = 'THẲNG';
-        } else if (absYaw <= 32) {
+        } else if (absYaw <= 35) {
           pillYaw.className = 'telemetry-pill warn';
           pillYaw.textContent = yaw > 0 ? 'LỆCH PHẢI' : 'LỆCH TRÁI';
         } else {
@@ -3323,10 +3323,10 @@
       if (valPitch) valPitch.textContent = `${pitch >= 0 ? '+' : ''}${pitch.toFixed(1)}°`;
       const absPitch = Math.abs(pitch);
       if (pillPitch) {
-        if (absPitch <= 10) {
+        if (absPitch <= 16) {
           pillPitch.className = 'telemetry-pill pass';
           pillPitch.textContent = 'THẲNG';
-        } else if (absPitch <= 24) {
+        } else if (absPitch <= 30) {
           pillPitch.className = 'telemetry-pill warn';
           pillPitch.textContent = pitch > 0 ? 'NGẨNG ĐẦU' : 'CÚI ĐẦU';
         } else {
@@ -3338,10 +3338,10 @@
       if (valRoll) valRoll.textContent = `${roll >= 0 ? '+' : ''}${roll.toFixed(1)}°`;
       const absRoll = Math.abs(roll);
       if (pillRoll) {
-        if (absRoll <= 10) {
+        if (absRoll <= 14) {
           pillRoll.className = 'telemetry-pill pass';
           pillRoll.textContent = 'THẲNG';
-        } else if (absRoll <= 18) {
+        } else if (absRoll <= 22) {
           pillRoll.className = 'telemetry-pill warn';
           pillRoll.textContent = 'NGHIÊNG';
         } else {
@@ -3374,14 +3374,14 @@
           } else if (data.is_off_center && data.off_center_hint) {
             hint.textContent = data.off_center_hint;
           } else if (data.is_too_far) {
-            hint.textContent = `Tiến lại gần camera hơn (chiếm ${pct}%, cần ≥30%)`;
+            hint.textContent = `Tiến lại gần camera hơn (chiếm ${pct}%, cần ≥25%)`;
           } else if (data.is_too_close) {
-            hint.textContent = `Lùi xa camera một chút (chiếm ${pct}%, cần ≤90%)`;
-          } else if (absYaw > 12) {
+            hint.textContent = `Lùi xa camera một chút (chiếm ${pct}%, cần ≤92%)`;
+          } else if (absYaw > 14) {
             hint.textContent = yaw > 0 ? 'Quay mặt sang trái một chút' : 'Quay mặt sang phải một chút';
-          } else if (absPitch > 10) {
+          } else if (absPitch > 16) {
             hint.textContent = pitch > 0 ? 'Hạ cằm xuống nhìn thẳng ngang tầm mắt' : 'Nâng cằm lên nhìn thẳng ngang tầm mắt';
-          } else if (absRoll > 10) {
+          } else if (absRoll > 14) {
             hint.textContent = 'Giữ thẳng đầu, không nghiêng sang bên';
           } else {
             hint.textContent = data.guide || data.message || 'Nhìn thẳng vào giữa khung oval';

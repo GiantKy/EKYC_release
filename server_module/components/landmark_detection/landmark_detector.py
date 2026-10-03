@@ -86,7 +86,7 @@ class LandmarkDetector:
 
         self.landmarker = FaceLandmarker.create_from_options(options)
 
-    def detect(self, frame, oval_center=None, oval_axes=None, filter_oval=True, oval_tolerance=1.0):
+    def detect(self, frame, oval_center=None, oval_axes=None, filter_oval=True, oval_tolerance=1.15):
         """
         Trích xuất landmarks khuôn mặt chính.
         Nếu filter_oval=True: chỉ nhận khuôn mặt nằm trong khung oval
@@ -132,7 +132,7 @@ class LandmarkDetector:
 
         return landmarks
 
-    def detect_with_count(self, frame, oval_center=None, oval_axes=None, filter_oval=True, oval_tolerance=1.0):
+    def detect_with_count(self, frame, oval_center=None, oval_axes=None, filter_oval=True, oval_tolerance=1.15):
         """
         Trả về tuple: (landmarks_mặt_chính, số_lượng_khuôn_mặt).
         Nếu filter_oval=True:
@@ -189,7 +189,7 @@ class LandmarkDetector:
 
         return landmarks, num_faces
 
-    def detect_raw_3d(self, frame, oval_center=None, oval_axes=None, filter_oval=True, oval_tolerance=1.0):
+    def detect_raw_3d(self, frame, oval_center=None, oval_axes=None, filter_oval=True, oval_tolerance=1.15):
         """
         Trả về tuple: (landmarks_3d_mặt_chính, số_lượng_khuôn_mặt).
         Nếu filter_oval=True: chỉ nhận mặt trong oval và lược bỏ hoàn toàn các mặt ngoài oval.

@@ -43,12 +43,12 @@ class HeadMovementDetector:
 
     def __init__(
         self,
-        yaw_threshold: float = 16.0,
-        pitch_threshold: float = 12.0,
-        roll_threshold: float = 14.0,
+        yaw_threshold: float = 14.0,
+        pitch_threshold: float = 18.0,
+        roll_threshold: float = 18.0,
         timeout: float = 10.0,
         min_consecutive_frames: int = 2,
-        delta_yaw_threshold: float = 3.5,
+        delta_yaw_threshold: float = 3.0,
         delta_pitch_threshold: float = 4.0
     ):
         """

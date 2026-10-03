@@ -4,7 +4,7 @@ from ..landmark_detection.utils import get_landmark_point
 
 class PoseValidator:
 
-    def __init__(self, max_yaw: float = 32.0, max_pitch: float = 24.0, max_roll: float = 18.0):
+    def __init__(self, max_yaw: float = 35.0, max_pitch: float = 30.0, max_roll: float = 22.0):
         self.estimator = HeadPoseEstimator()
         self.max_yaw = max_yaw
         self.max_pitch = max_pitch

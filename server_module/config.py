@@ -60,12 +60,12 @@ CONF_THRESHOLD_FACE = 0.5
 CONF_THRESHOLD_ANTI_SPOOF = 0.25
 
 # Ngưỡng tư thế 3D Pose (Euler Angles: Yaw, Pitch, Roll)
-POSE_MAX_YAW = 32.0       # Độ xoay ngang tối đa cho phép (nới lỏng từ 25.0 -> 32.0 tránh báo nhầm lệch khi đầu thẳng)
-POSE_MAX_PITCH = 24.0     # Độ ngước lên/cúi xuống tối đa cho phép (nới lỏng từ 20.0 -> 24.0)
-POSE_MAX_ROLL = 18.0      # Độ nghiêng đầu tối đa cho phép (nới lỏng từ 15.0 -> 18.0)
-MIN_FACE_HEIGHT = 105     # Chiều cao khuôn mặt tối thiểu trong khung hình (~30% Oval 480p: 364*0.30=109px)
-OVAL_FIT_MIN_RATIO = 0.30  # Tỷ lệ tối thiểu của chiều cao mặt so với chiều cao khung Oval (nới lỏng xuống 30%)
-OVAL_FIT_MAX_RATIO = 0.90  # Tỷ lệ tối đa của chiều cao mặt so với chiều cao khung Oval (90% - khoảng 328px)
+POSE_MAX_YAW = 35.0       # Độ xoay ngang tối đa cho phép (nới lỏng từ 32.0 -> 35.0 tránh bắt bẻ khi ngồi lệch webcam)
+POSE_MAX_PITCH = 30.0     # Độ ngước lên/cúi xuống tối đa cho phép (nới lỏng từ 24.0 -> 30.0 phù hợp góc chiếu laptop)
+POSE_MAX_ROLL = 22.0      # Độ nghiêng đầu tối đa cho phép (nới lỏng từ 18.0 -> 22.0)
+MIN_FACE_HEIGHT = 75      # Chiều cao khuôn mặt tối thiểu trong khung hình (hạ từ 105 -> 75px cho người ngồi xa 60-70cm)
+OVAL_FIT_MIN_RATIO = 0.25  # Tỷ lệ tối thiểu của chiều cao mặt so với chiều cao khung Oval (nới lỏng từ 30% -> 25%)
+OVAL_FIT_MAX_RATIO = 0.92  # Tỷ lệ tối đa của chiều cao mặt so với chiều cao khung Oval (92%)
 
 # Ngưỡng Liveness Blink (Eye Aspect Ratio - EAR)
 EAR_EYE_CLOSED_THRESHOLD = 0.20   # Dưới ngưỡng này coi như mắt nhắm (bắt trọn chớp mắt tự nhiên)
@@ -73,10 +73,10 @@ EAR_EYE_OPEN_THRESHOLD = 0.22     # Trên ngưỡng này coi như mắt mở
 MIN_BLINKS_REQUIRED = 1
 
 # Ngưỡng thử thách chuyển động đầu (Head Movement Challenge)
-HEAD_YAW_THRESHOLD = 16.0
-HEAD_PITCH_THRESHOLD = 12.0
-HEAD_DELTA_YAW_THRESHOLD = 3.0     # Ngưỡng nhích nhẹ đầu tối thiểu (giảm từ 3.5 -> 3.0 độ giúp dễ hoàn thành hơn)
-HEAD_DELTA_PITCH_THRESHOLD = 4.0   # Ngưỡng nhích nhẹ gật đầu tối thiểu
+HEAD_YAW_THRESHOLD = 14.0         # Ngưỡng góc quay trái/phải phân loại tĩnh (giảm từ 16.0 -> 14.0)
+HEAD_PITCH_THRESHOLD = 18.0       # Ngưỡng góc cúi/ngước cho phép khi nhìn thẳng (tăng từ 12.0 -> 18.0)
+HEAD_DELTA_YAW_THRESHOLD = 3.0    # Ngưỡng nhích nhẹ đầu tối thiểu (3.0 độ chuyển động thực tế từ mốc ban đầu)
+HEAD_DELTA_PITCH_THRESHOLD = 4.0  # Ngưỡng nhích nhẹ gật đầu tối thiểu
 CHALLENGE_TIMEOUT_SECONDS = 10.0
 
 # =====================================================================

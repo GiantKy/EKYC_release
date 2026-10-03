@@ -146,7 +146,7 @@ def get_default_oval_params(w: int, h: int) -> Tuple[Tuple[int, int], Tuple[int,
     return (cx, cy), (ax, ay)
 
 
-def is_point_in_oval(pt: Tuple[float, float], center: Tuple[int, int], axes: Tuple[int, int], tolerance: float = 1.0) -> bool:
+def is_point_in_oval(pt: Tuple[float, float], center: Tuple[int, int], axes: Tuple[int, int], tolerance: float = 1.15) -> bool:
     """Kiểm tra một điểm (x, y) có nằm trong hình ellipse/oval hay không."""
     cx, cy = center
     ax, ay = axes
@@ -157,7 +157,7 @@ def is_point_in_oval(pt: Tuple[float, float], center: Tuple[int, int], axes: Tup
     return (norm_x ** 2 + norm_y ** 2) <= 1.0
 
 
-def is_face_in_oval(bbox: Union[List[int], Tuple[int, ...]], center: Tuple[int, int], axes: Tuple[int, int], tolerance: float = 1.0) -> bool:
+def is_face_in_oval(bbox: Union[List[int], Tuple[int, ...]], center: Tuple[int, int], axes: Tuple[int, int], tolerance: float = 1.15) -> bool:
     """Kiểm tra tâm khuôn mặt có nằm gọn trong khung Oval hay không."""
     x1, y1, x2, y2 = bbox
     face_cx = (x1 + x2) / 2.0
@@ -171,7 +171,7 @@ def is_landmarks_in_oval(
     img_h: int,
     center: Optional[Tuple[int, int]] = None,
     axes: Optional[Tuple[int, int]] = None,
-    tolerance: float = 1.0
+    tolerance: float = 1.15
 ) -> bool:
     """
     Kiểm tra tâm khuôn mặt từ landmarks (pixel hoặc normalized) có nằm trong khung oval hay không.
@@ -209,16 +209,16 @@ def check_face_oval_fit(
     img_h: int,
     oval_center: Optional[Tuple[int, int]] = None,
     oval_axes: Optional[Tuple[int, int]] = None,
-    tolerance: float = 1.0,
-    min_ratio: float = 0.30,
-    max_ratio: float = 0.90,
-    min_face_height: int = 105
+    tolerance: float = 1.15,
+    min_ratio: float = 0.25,
+    max_ratio: float = 0.92,
+    min_face_height: int = 75
 ) -> Dict[str, Any]:
     """
     Kiểm tra độ vừa vặn và căn chỉnh của khuôn mặt đối với khung Oval tiêu chuẩn (Oval Fit Standard):
     - Tỷ lệ chiều cao khuôn mặt (face_size_h / oval_h) phải nằm trong khoảng [min_ratio, max_ratio].
     - Chiều cao khuôn mặt tối thiểu phải >= min_face_height.
-    - Tâm khuôn mặt không được lệch quá 35% bán trục oval (|dx| <= 0.35*ax, |dy| <= 0.35*ay).
+    - Tâm khuôn mặt có dung sai tự nhiên tránh bắt bẻ người dùng (|dx| <= 0.65*ax, |dy| <= 0.70*ay).
 
     Returns:
         Dict chứa trạng thái khớp oval:
@@ -301,10 +301,10 @@ def check_face_oval_fit(
     dy = face_cy - cy
     is_off_center = False
     off_center_hint = ""
-    # Ngưỡng lệch tâm: Cho phép dung sai tự nhiên (55% bán kính ngang, 50% bán kính dọc)
+    # Ngưỡng lệch tâm: Cho phép dung sai tự nhiên (65% bán kính ngang, 70% bán kính dọc)
     # tránh hiện tượng rung lắc vi mô khiến người dùng phải liên tục nhích đầu trái phải
-    thresh_x = ax * 0.55
-    thresh_y = ay * 0.50
+    thresh_x = ax * 0.65
+    thresh_y = ay * 0.70
     if abs(dx) > thresh_x or abs(dy) > thresh_y:
         is_off_center = True
         hints = []

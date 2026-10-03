@@ -1,5 +1,5 @@
 # Góc nghiêng tối đa
-MAX_HEAD_TILT = 15
+MAX_HEAD_TILT = 22
 
 # Quay trái phải tối đa
-MAX_NOSE_OFFSET_RATIO = 0.20
+MAX_NOSE_OFFSET_RATIO = 0.25

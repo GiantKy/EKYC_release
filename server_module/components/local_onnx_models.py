@@ -211,13 +211,15 @@ class RFDETROnnxRunner:
 class YOLOOcclusionOnnxRunner:
     """
     Trình chạy suy luận trực tiếp cho mô hình YOLO26n Glass & Mask từ file weights.onnx cục bộ.
-    Chạy 100% OFFLINE, không gọi lên cloud Roboflow.
+    Chạy 100% OFFLINE trực tiếp qua ONNXRuntime, KHÔNG dùng Ultralytics (tránh lỗi AutoUpdate),
+    KHÔNG gọi lên cloud Roboflow hay phụ thuộc internet.
     """
     def __init__(self, onnx_path: str, class_names_path: Optional[str] = None):
         self.onnx_path = onnx_path
         self.class_names = {0: "glass", 1: "mask", 2: "no_glass", 3: "no_mask"}
-        self.yolo_model = None
         self.ort_session = None
+        self.input_name = None
+        self.input_shape = (640, 640)
 
         if class_names_path and os.path.exists(class_names_path):
             with open(class_names_path, "r", encoding="utf-8") as f:
@@ -236,91 +238,97 @@ class YOLOOcclusionOnnxRunner:
 
     def _init_model(self):
         _patch_onnxruntime_compatibility()
-        # 1. Thử dùng Ultralytics YOLO để load trực tiếp ONNX
-        try:
-            from ultralytics import YOLO
-            self.yolo_model = YOLO(self.onnx_path, task="detect")
-            print(f"[YOLOOcclusionOnnxRunner] Đã nạp thành công file ONNX qua Ultralytics YOLO: {self.onnx_path}")
-            return
-        except Exception as e:
-            print(f"[YOLOOcclusionOnnxRunner] Ultralytics load failed ({e}), chuyển sang onnxruntime...")
-
-        # 2. Fallback sang onnxruntime trực tiếp
         try:
             import onnxruntime as ort
-            available = ort.get_available_providers()
-            providers = [p for p in ["DmlExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"] if p in available] or ["CPUExecutionProvider"]
-            self.ort_session = ort.InferenceSession(self.onnx_path, providers=providers)
-            self.input_name = self.ort_session.get_inputs()[0].name
-            print(f"[YOLOOcclusionOnnxRunner] Đã nạp thành công file ONNX qua ONNXRuntime: {self.onnx_path}")
-        except Exception as e:
-            print(f"[YOLOOcclusionOnnxRunner] ERROR: Không thể load ONNX model: {e}")
+        except ImportError:
+            raise ImportError("Thiếu thư viện onnxruntime. Vui lòng chạy 'pip install onnxruntime'.")
+
+        available = ort.get_available_providers()
+        providers = [p for p in ["DmlExecutionProvider", "CUDAExecutionProvider", "CPUExecutionProvider"] if p in available] or ["CPUExecutionProvider"]
+        
+        opts = ort.SessionOptions()
+        opts.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
+        opts.intra_op_num_threads = max(1, os.cpu_count() // 2 if os.cpu_count() else 2)
+
+        self.ort_session = ort.InferenceSession(self.onnx_path, sess_options=opts, providers=providers)
+        self.input_name = self.ort_session.get_inputs()[0].name
+        
+        shape = self.ort_session.get_inputs()[0].shape
+        if len(shape) >= 4 and isinstance(shape[2], int) and isinstance(shape[3], int):
+            self.input_shape = (shape[3], shape[2])
+        print(f"[YOLOOcclusionOnnxRunner] Đã nạp thành công file ONNX trực tiếp qua ONNXRuntime (100% Offline): {self.onnx_path}")
+        print(f"[YOLOOcclusionOnnxRunner] Input: '{self.input_name}' {self.input_shape} | Providers: {providers} | Classes: {self.class_names}")
 
     def infer(self, image: np.ndarray, conf_threshold: float = 0.25) -> SimpleNamespace:
         """
         Giao diện infer tương thích 100% với Roboflow Inference SDK.
         """
-        if image is None or image.size == 0:
+        if image is None or image.size == 0 or self.ort_session is None:
             return SimpleNamespace(predictions=[])
 
-        # Nhánh 1: Nếu nạp được bằng Ultralytics YOLO
-        if self.yolo_model is not None:
-            try:
-                results = self.yolo_model(image, conf=conf_threshold, verbose=False)
-                predictions = []
-                for r in results:
-                    if hasattr(r, "boxes") and len(r.boxes) > 0:
-                        for box in r.boxes:
-                            cx, cy, w, h = box.xywh[0].tolist()
-                            conf = float(box.conf[0])
-                            cls_id = int(box.cls[0])
-                            cls_name = self.class_names.get(cls_id, str(r.names.get(cls_id, f"class_{cls_id}"))).lower().strip()
-                            predictions.append(SimpleNamespace(
-                                x=float(cx),
-                                y=float(cy),
-                                width=float(w),
-                                height=float(h),
-                                confidence=conf,
-                                class_name=cls_name
-                            ))
-                return SimpleNamespace(predictions=predictions)
-            except Exception as e:
-                print(f"[YOLOOcclusionOnnxRunner] YOLO infer error: {e}")
+        try:
+            h_orig, w_orig = image.shape[:2]
+            target_w, target_h = self.input_shape
+            rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            resized = cv2.resize(rgb, (target_w, target_h), interpolation=cv2.INTER_LINEAR)
+            blob = (resized.transpose(2, 0, 1) / 255.0).astype(np.float32)[None, ...]
 
-        # Nhánh 2: Nếu dùng ONNXRuntime
-        if self.ort_session is not None:
-            try:
-                h_orig, w_orig = image.shape[:2]
-                rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
-                resized = cv2.resize(rgb, (640, 640), interpolation=cv2.INTER_LINEAR)
-                blob = (resized.transpose(2, 0, 1) / 255.0).astype(np.float32)[None, ...]
-                outputs = _safe_ort_run(self.ort_session, {self.input_name: blob})
-                out = outputs[0]
-                predictions = []
-                scale_x = w_orig / 640.0
-                scale_y = h_orig / 640.0
+            outputs = _safe_ort_run(self.ort_session, {self.input_name: blob})
+            out = outputs[0]
+            predictions = []
+            scale_x = w_orig / float(target_w)
+            scale_y = h_orig / float(target_h)
 
-                # Dạng End-to-End ONNX [1, 300, 6] -> [x1, y1, x2, y2, conf, cls_id]
-                if len(out.shape) == 3 and out.shape[-1] == 6:
-                    for det in out[0]:
-                        x1, y1, x2, y2, conf, cls_id = det
-                        if conf < conf_threshold:
-                            continue
-                        cx = ((x1 + x2) / 2.0) * scale_x
-                        cy = ((y1 + y2) / 2.0) * scale_y
-                        w = (x2 - x1) * scale_x
-                        h = (y2 - y1) * scale_y
-                        cls_name = self.class_names.get(int(cls_id), f"class_{int(cls_id)}").lower().strip()
-                        predictions.append(SimpleNamespace(
-                            x=float(cx),
-                            y=float(cy),
-                            width=float(w),
-                            height=float(h),
-                            confidence=float(conf),
-                            class_name=cls_name
-                        ))
+            # Dạng End-to-End ONNX [1, 300, 6] -> [x1, y1, x2, y2, conf, cls_id]
+            if len(out.shape) == 3 and out.shape[-1] == 6:
+                for det in out[0]:
+                    x1, y1, x2, y2, conf, cls_id = det
+                    if conf < conf_threshold:
+                        continue
+                    cx = ((float(x1) + float(x2)) / 2.0) * scale_x
+                    cy = ((float(y1) + float(y2)) / 2.0) * scale_y
+                    w = (float(x2) - float(x1)) * scale_x
+                    h = (float(y2) - float(y1)) * scale_y
+                    cls_name = self.class_names.get(int(cls_id), f"class_{int(cls_id)}").lower().strip()
+                    predictions.append(SimpleNamespace(
+                        x=float(cx),
+                        y=float(cy),
+                        width=float(w),
+                        height=float(h),
+                        confidence=float(conf),
+                        class_name=cls_name
+                    ))
                 return SimpleNamespace(predictions=predictions)
-            except Exception as e:
-                print(f"[YOLOOcclusionOnnxRunner] ORT infer error: {e}")
+
+            # Fallback dạng standard YOLO [1, 8, 8400] hoặc [1, 8400, 8]
+            if len(out.shape) == 3:
+                preds = out[0]
+                if preds.shape[0] < preds.shape[1]:
+                    preds = preds.T  # shape: [8400, 4 + num_classes]
+                for row in preds:
+                    box = row[:4]
+                    scores = row[4:]
+                    cls_id = int(np.argmax(scores))
+                    conf = float(scores[cls_id])
+                    if conf < conf_threshold:
+                        continue
+                    cx, cy, w, h = box
+                    px = float(cx * scale_x)
+                    py = float(cy * scale_y)
+                    pw = float(w * scale_x)
+                    ph = float(h * scale_y)
+                    cls_name = self.class_names.get(cls_id, f"class_{cls_id}").lower().strip()
+                    predictions.append(SimpleNamespace(
+                        x=px,
+                        y=py,
+                        width=pw,
+                        height=ph,
+                        confidence=conf,
+                        class_name=cls_name
+                    ))
+                return SimpleNamespace(predictions=predictions)
+
+        except Exception as e:
+            print(f"[YOLOOcclusionOnnxRunner] ORT infer error: {e}")
 
         return SimpleNamespace(predictions=[])

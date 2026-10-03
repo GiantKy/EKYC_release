@@ -276,18 +276,18 @@ class EKYCPipelineServer:
 
         masked_frame = get_oval_masked_frame(frame_proc, oval_center, oval_axes, blur_ksize=45, dim_factor=0.35)
         num_faces, is_single = self.identity_verifier.count_faces(
-            masked_frame, self.detector, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+            masked_frame, self.detector, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
         )
         if num_faces == 0:
             # Thử lại với conf=0.35 trên masked_frame
             raw_faces = self.detector.detect(masked_frame, conf=0.35)
-            faces_in_oval = filter_faces_in_oval(raw_faces, oval_center, oval_axes, img_w=w_f, img_h=h_f, tolerance=1.0)
+            faces_in_oval = filter_faces_in_oval(raw_faces, oval_center, oval_axes, img_w=w_f, img_h=h_f, tolerance=1.15)
             num_faces = len(faces_in_oval)
 
         if num_faces == 0:
             # Fallback dò trên frame_proc gốc phòng khi masked_frame làm mờ viền mặt
             raw_faces = self.detector.detect(frame_proc, conf=0.35)
-            faces_in_oval = filter_faces_in_oval(raw_faces, oval_center, oval_axes, img_w=w_f, img_h=h_f, tolerance=1.05)
+            faces_in_oval = filter_faces_in_oval(raw_faces, oval_center, oval_axes, img_w=w_f, img_h=h_f, tolerance=1.15)
             num_faces = len(faces_in_oval)
         if num_faces > 1:
             return {
@@ -299,11 +299,11 @@ class EKYCPipelineServer:
 
         # Kiểm tra che mặt nghiêm ngặt ngay tại ảnh chụp Bước 1 (Anti-Occlusion Defense)
         landmarks = self.landmark_detector.detect(
-            masked_frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+            masked_frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
         )
         if not landmarks:
             landmarks = self.landmark_detector.detect(
-                frame_proc, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+                frame_proc, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
             )
 
         if not landmarks:
@@ -446,11 +446,11 @@ class EKYCPipelineServer:
         # Quét trên masked_frame để triệt tiêu người thứ 2 ngoài oval
         masked_frame = get_oval_masked_frame(frame, oval_center, oval_axes, blur_ksize=45, dim_factor=0.35)
         landmarks, num_faces = self.landmark_detector.detect_with_count(
-            masked_frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+            masked_frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
         )
         if not landmarks and num_faces == 0:
             landmarks, num_faces = self.landmark_detector.detect_with_count(
-                frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+                frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
             )
         if num_faces > 1:
             return {
@@ -659,11 +659,11 @@ class EKYCPipelineServer:
 
         # 2. Căn chỉnh và crop 224x224
         landmarks = self.landmark_detector.detect(
-            masked_frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+            masked_frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
         )
         if not landmarks:
             landmarks = self.landmark_detector.detect(
-                frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+                frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
             )
         aligned_img = None
         face_crop_224 = None
@@ -1394,15 +1394,15 @@ class EKYCPipelineServer:
             primary_face = max(faces, key=get_face_priority)
 
         # Kiểm tra mặt có trong oval
-        face_in_oval = bool(primary_face and is_face_in_oval(primary_face["bbox"], oval_center, oval_axes, tolerance=1.0))
+        face_in_oval = bool(primary_face and is_face_in_oval(primary_face["bbox"], oval_center, oval_axes, tolerance=1.15))
 
         # 2. Landmarks (chạy trên detection_input để triệt tiêu người thứ 2, fallback frame tự nhiên)
         landmarks = self.landmark_detector.detect(
-            detection_input, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+            detection_input, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
         )
         if not landmarks and detection_input is not frame:
             landmarks = self.landmark_detector.detect(
-                frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.0
+                frame, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True, oval_tolerance=1.15
             )
 
         # 3. 3D Pose
