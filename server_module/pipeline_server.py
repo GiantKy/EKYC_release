@@ -15,6 +15,21 @@ from typing import Union, Dict, Any, List, Optional, Tuple
 import numpy as np
 import cv2
 
+# Khắc phục lỗi Version Mismatch trong ONNX Runtime trên Windows
+# ('is_webgpu_graph_capture_enabled' phát sinh khi Python wrappers mới hơn C++ pybind11 DLL)
+try:
+    import onnxruntime as ort
+    if hasattr(ort.InferenceSession, "_validate_graph_capture_run_api"):
+        ort.InferenceSession._validate_graph_capture_run_api = lambda *args, **kwargs: None
+    try:
+        capi_sess = ort.capi.onnxruntime_pybind11_state.InferenceSession
+        if not hasattr(capi_sess, "is_webgpu_graph_capture_enabled"):
+            setattr(capi_sess, "is_webgpu_graph_capture_enabled", lambda *args, **kwargs: False)
+    except Exception:
+        pass
+except Exception:
+    pass
+
 # Import hoàn toàn từ các components nội bộ bên trong server_module
 try:
     from .components import (

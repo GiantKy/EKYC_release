@@ -26,9 +26,18 @@ FACE_LANDMARKER_MODEL_PATH = os.path.join(MODELS_DIR, "landmarks", "mediapipe_fa
 # Model 1: YOLO_4 (Anti_Spoof_YOLO_4.pt) — Object Detection local
 ANTI_SPOOF_YOLO4_MODEL_PATH = os.path.join(MODELS_DIR, "anti_spoof", "yolo", "yolo_anti_spoof_v4_official.pt") if os.path.exists(os.path.join(MODELS_DIR, "anti_spoof", "yolo", "yolo_anti_spoof_v4_official.pt")) else os.path.join(MODELS_DIR, "Anti_Spoof_YOLO_4.pt")
 
-# Model 2: RF-DETR Small — Roboflow Inference (Transformer)
+# Model 2: RF-DETR Small — Local ONNX Weights (100% Offline)
+RFDETR_ONNX_PATH = os.path.join(MODELS_DIR, "anti_spoof", "rf_detr", "rfdetr_small_official", "weights.onnx")
+if not os.path.exists(RFDETR_ONNX_PATH):
+    RFDETR_ONNX_PATH = os.path.join(MODELS_DIR, "roboflow", "k-thi-gia-s-workspace", "face-spoof-detection-liika-owgrl-1-rfdetr-small-t1", "weights.onnx")
+
 RFDETR_MODEL_ID = "k-thi-gia-s-workspace/face-spoof-detection-liika-owgrl-1-rfdetr-small-t1"
 RFDETR_API_KEY = os.environ.get("ROBOFLOW_API_KEY", "")
+
+# Face Occlusion: YOLO26n Glass & Mask — Local ONNX Weights (100% Offline)
+OCCLUSION_ONNX_PATH = os.path.join(MODELS_DIR, "face_occlusion", "yolo26n_glass_and_mask_official", "weights.onnx")
+if not os.path.exists(OCCLUSION_ONNX_PATH):
+    OCCLUSION_ONNX_PATH = os.path.join(MODELS_DIR, "roboflow", "glass-and-mask-q5de1", "2", "weights.onnx")
 
 # Roboflow model cache — nằm trong server_module/models/roboflow/
 ROBOFLOW_CACHE_DIR = os.path.join(MODELS_DIR, "roboflow")

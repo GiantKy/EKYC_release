@@ -12,6 +12,7 @@ from .face_alignment_crop.face_align_crop import FaceAligner
 from .head_movement.head_movement_detector import HeadMovementDetector, HeadAction, ChallengeState
 from .face_identity_verifier import FaceIdentityVerifier
 from .face_occlusion_detector import FaceOcclusionDetector
+from .local_onnx_models import RFDETROnnxRunner, YOLOOcclusionOnnxRunner
 
 __all__ = [
     "FaceDetector",
@@ -25,5 +26,7 @@ __all__ = [
     "ChallengeState",
     "FaceIdentityVerifier",
     "FaceOcclusionDetector",
+    "RFDETROnnxRunner",
+    "YOLOOcclusionOnnxRunner",
 ]
 

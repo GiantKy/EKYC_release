@@ -24,6 +24,7 @@ from ultralytics import YOLO
 try:
     from .config import (
         ANTI_SPOOF_YOLO4_MODEL_PATH,
+        RFDETR_ONNX_PATH,
         RFDETR_MODEL_ID,
         RFDETR_API_KEY,
         ROBOFLOW_CACHE_DIR,
@@ -38,6 +39,7 @@ try:
 except (ImportError, ValueError):
     from config import (
         ANTI_SPOOF_YOLO4_MODEL_PATH,
+        RFDETR_ONNX_PATH,
         RFDETR_MODEL_ID,
         RFDETR_API_KEY,
         ROBOFLOW_CACHE_DIR,
@@ -49,6 +51,14 @@ except (ImportError, ValueError):
         ENSEMBLE_SPOOF_VETO_THRESHOLD,
     )
     from utils import calculate_iou
+
+try:
+    from .components.local_onnx_models import RFDETROnnxRunner
+except (ImportError, ValueError):
+    try:
+        from components.local_onnx_models import RFDETROnnxRunner
+    except (ImportError, ValueError):
+        from server_module.components.local_onnx_models import RFDETROnnxRunner
 
 
 class EnsembleAntiSpoofDetector:
@@ -71,14 +81,16 @@ class EnsembleAntiSpoofDetector:
         yolo_model_path: Optional[str] = None,
         rfdetr_model_id: Optional[str] = None,
         rfdetr_api_key: Optional[str] = None,
+        rfdetr_onnx_path: Optional[str] = None,
     ):
         """
         Khởi tạo Ensemble Detector.
         
         Args:
             yolo_model_path: Đường dẫn tới file Anti_Spoof_YOLO_4.pt. Nếu None, dùng config mặc định.
-            rfdetr_model_id: Model ID của RF-DETR trên Roboflow. Nếu None, dùng config mặc định.
-            rfdetr_api_key: API key Roboflow. Nếu None, dùng config mặc định hoặc env var.
+            rfdetr_model_id: Model ID của RF-DETR (tùy chọn).
+            rfdetr_api_key: API key Roboflow (tùy chọn).
+            rfdetr_onnx_path: Đường dẫn tới file weights.onnx của RF-DETR cục bộ.
         """
         # =====================================================================
         # 1. Load Model YOLO_4
@@ -95,32 +107,45 @@ class EnsembleAntiSpoofDetector:
         print(f"[EnsembleAntiSpoof] YOLO_4 loaded — classes: {self.yolo_classes}")
 
         # =====================================================================
-        # 2. Load Model RF-DETR Small
+        # 2. Load Model RF-DETR Small (Local ONNX, 100% Offline)
         # =====================================================================
+        self.rfdetr_onnx_path = rfdetr_onnx_path or RFDETR_ONNX_PATH
         self.rfdetr_model_id = rfdetr_model_id or RFDETR_MODEL_ID
         self.rfdetr_api_key = rfdetr_api_key or RFDETR_API_KEY
         self.rfdetr_model = None
         self.rfdetr_available = False
 
-        # Thiết lập cache cho Roboflow
-        os.environ["MODEL_CACHE_DIR"] = ROBOFLOW_CACHE_DIR
-        os.makedirs(ROBOFLOW_CACHE_DIR, exist_ok=True)
+        # Ưu tiên 1: Dùng trực tiếp file ONNX cục bộ trong thư mục models (Hoàn toàn không gọi lên Cloud Roboflow)
+        if os.path.exists(self.rfdetr_onnx_path):
+            try:
+                print(f"[EnsembleAntiSpoof] Loading Model 2 (RF-DETR Small) trực tiếp từ file ONNX cục bộ: {self.rfdetr_onnx_path}")
+                self.rfdetr_model = RFDETROnnxRunner(self.rfdetr_onnx_path)
+                self.rfdetr_available = True
+                print("[EnsembleAntiSpoof] RF-DETR Small ONNX nạp thành công (100% OFFLINE, không gọi Cloud Roboflow)!")
+            except Exception as e:
+                print(f"[EnsembleAntiSpoof] WARNING: Không thể load RF-DETR Small từ file ONNX: {e}")
+                self.rfdetr_available = False
+        else:
+            print(f"[EnsembleAntiSpoof] WARNING: Không tìm thấy file ONNX RF-DETR tại: {self.rfdetr_onnx_path}")
 
-        try:
-            from inference import get_model
-            print(f"[EnsembleAntiSpoof] Loading Model 2 (RF-DETR Small): {self.rfdetr_model_id}")
-            self.rfdetr_model = get_model(
-                model_id=self.rfdetr_model_id,
-                api_key=self.rfdetr_api_key
-            )
-            self.rfdetr_available = True
-            print("[EnsembleAntiSpoof] RF-DETR Small loaded successfully!")
-        except Exception as e:
-            print(f"[EnsembleAntiSpoof] WARNING: Không thể load RF-DETR Small: {e}")
-            print("[EnsembleAntiSpoof] Sẽ fallback về chế độ YOLO_4 đơn lẻ (single model).")
-            self.rfdetr_available = False
+        # Fallback (chỉ khi file ONNX bị thiếu và có cấu hình roboflow SDK)
+        if not self.rfdetr_available and self.rfdetr_api_key:
+            try:
+                os.environ["MODEL_CACHE_DIR"] = ROBOFLOW_CACHE_DIR
+                os.makedirs(ROBOFLOW_CACHE_DIR, exist_ok=True)
+                from inference import get_model
+                print(f"[EnsembleAntiSpoof] Fallback: Loading RF-DETR từ inference SDK: {self.rfdetr_model_id}")
+                self.rfdetr_model = get_model(
+                    model_id=self.rfdetr_model_id,
+                    api_key=self.rfdetr_api_key
+                )
+                self.rfdetr_available = True
+                print("[EnsembleAntiSpoof] RF-DETR Small loaded via inference SDK!")
+            except Exception as e:
+                print(f"[EnsembleAntiSpoof] Fallback inference SDK failed: {e}")
+                self.rfdetr_available = False
 
-        mode_str = "Ensemble (YOLO_4 + RF-DETR)" if self.rfdetr_available else "YOLO_4 Only (Fallback)"
+        mode_str = "Ensemble (YOLO_4 + RF-DETR ONNX)" if self.rfdetr_available else "YOLO_4 Only (Fallback)"
         print(f"[EnsembleAntiSpoof] Ready — Mode: {mode_str}\n")
 
     def _predict_yolo(

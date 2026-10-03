@@ -33,46 +33,70 @@ class FaceOcclusionDetector:
         model_id: str = "glass-and-mask-q5de1/2",
         api_key: Optional[str] = None,
         conf_threshold: float = 0.55,
-        strict_glasses: bool = STRICT_GLASSES_POLICY
+        strict_glasses: bool = STRICT_GLASSES_POLICY,
+        onnx_path: Optional[str] = None
     ):
         self.model_id = model_id
         self.api_key = api_key if api_key is not None else os.environ.get("ROBOFLOW_API_KEY", "")
         self.conf_threshold = conf_threshold
         self.strict_glasses = strict_glasses
+        self.onnx_path = onnx_path
         self.ai_model = None
         self._last_check_time = 0.0
         self._cached_result = (False, "OK", "")
         self._init_ai_model()
 
     def _init_ai_model(self):
-        try:
-            from inference import get_model
-            _current_file = os.path.abspath(__file__)
-            _comp_dir = os.path.dirname(_current_file)
-            _server_dir = os.path.dirname(_comp_dir)
-            _root_dir = os.path.dirname(_server_dir)
+        _current_file = os.path.abspath(__file__)
+        _comp_dir = os.path.dirname(_current_file)
+        _server_dir = os.path.dirname(_comp_dir)
+        _root_dir = os.path.dirname(_server_dir)
 
-            cache_dir = os.path.join(_server_dir, "models", "roboflow")
-            if not os.path.exists(cache_dir):
-                alt_dir = os.path.join(_root_dir, "models", "roboflow")
-                if os.path.exists(alt_dir):
-                    cache_dir = alt_dir
-            target_cache = os.path.join(cache_dir, "glass-and-mask-q5de1", "2")
-            alt_cache = os.path.join(cache_dir, "Mask_Glass", "2")
-            if not os.path.exists(target_cache) and os.path.exists(alt_cache):
-                import shutil
-                os.makedirs(os.path.dirname(target_cache), exist_ok=True)
-                shutil.copytree(alt_cache, target_cache, dirs_exist_ok=True)
-            elif os.path.exists(target_cache) and not os.path.exists(alt_cache):
-                import shutil
-                os.makedirs(os.path.dirname(alt_cache), exist_ok=True)
-                shutil.copytree(target_cache, alt_cache, dirs_exist_ok=True)
+        # 1. Xác định đường dẫn file weights.onnx cục bộ
+        target_onnx = self.onnx_path
+        if not target_onnx:
+            try:
+                from server_module.config import OCCLUSION_ONNX_PATH
+                target_onnx = OCCLUSION_ONNX_PATH
+            except Exception:
+                try:
+                    from config import OCCLUSION_ONNX_PATH
+                    target_onnx = OCCLUSION_ONNX_PATH
+                except Exception:
+                    pass
 
-            os.environ["MODEL_CACHE_DIR"] = cache_dir
-            self.ai_model = get_model(model_id=self.model_id, api_key=self.api_key)
-        except Exception as e:
-            print(f"[WARN] FaceOcclusionDetector: Không thể khởi tạo model AI '{self.model_id}': {e}")
-            self.ai_model = None
+        if not target_onnx or not os.path.exists(target_onnx):
+            candidates = [
+                os.path.join(_server_dir, "models", "face_occlusion", "yolo26n_glass_and_mask_official", "weights.onnx"),
+                os.path.join(_server_dir, "models", "roboflow", "glass-and-mask-q5de1", "2", "weights.onnx"),
+                os.path.join(_server_dir, "models", "roboflow", "Mask_Glass", "2", "weights.onnx"),
+                os.path.join(_root_dir, "models", "face_occlusion", "yolo26n_glass_and_mask_official", "weights.onnx"),
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    target_onnx = c
+                    break
+
+        # Ưu tiên 1: Chạy trực tiếp file ONNX cục bộ (100% Offline, không gọi Cloud Roboflow)
+        if target_onnx and os.path.exists(target_onnx):
+            try:
+                print(f"[FaceOcclusionDetector] Loading YOLO26n Occlusion trực tiếp từ file ONNX cục bộ: {target_onnx}")
+                from .local_onnx_models import YOLOOcclusionOnnxRunner
+                self.ai_model = YOLOOcclusionOnnxRunner(target_onnx)
+                print("[FaceOcclusionDetector] YOLO26n Occlusion ONNX nạp thành công (100% OFFLINE, không gọi Cloud Roboflow)!")
+                return
+            except Exception as e:
+                print(f"[FaceOcclusionDetector] WARNING: Lỗi nạp file ONNX Occlusion: {e}")
+
+        # Fallback (chỉ khi file ONNX bị thiếu và có cấu hình roboflow SDK)
+        if self.api_key:
+            try:
+                from inference import get_model
+                print(f"[FaceOcclusionDetector] Fallback: Loading qua Roboflow inference SDK: {self.model_id}")
+                self.ai_model = get_model(model_id=self.model_id, api_key=self.api_key)
+            except Exception as e:
+                print(f"[WARN] FaceOcclusionDetector: Không thể khởi tạo model AI '{self.model_id}': {e}")
+                self.ai_model = None
 
     def check_occlusion(
         self,

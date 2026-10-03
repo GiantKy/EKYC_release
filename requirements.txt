@@ -20,10 +20,17 @@ ultralytics>=8.0.0
 torch>=2.0.0
 torchvision>=0.15.0
 
-# Roboflow Inference & ONNX Runtime (RF-DETR Transformer & Occlusion Detector)
-inference>=0.9.0
-onnx>=1.14.0
+# ONNX Runtime Engine (Chạy trực tiếp RF-DETR Transformer & YOLO26n Occlusion 100% Offline)
+# BẮT BUỘC: onnxruntime là engine chính để chạy các file .onnx cục bộ
 onnxruntime>=1.16.0
+onnx>=1.14.0
+
+# Tùy chọn tăng tốc phần cứng GPU cho ONNX Runtime (thay thế onnxruntime tiêu chuẩn nếu cần):
+# onnxruntime-directml>=1.16.0  # Tăng tốc GPU DirectX 12 trên Windows (AMD / Intel / NVIDIA)
+# onnxruntime-gpu>=1.16.0       # Tăng tốc GPU NVIDIA CUDA
+
+# Roboflow Inference SDK (Tùy chọn - chỉ dùng khi muốn gọi Cloud Roboflow fallback)
+# inference>=0.9.0
 
 # Web Framework & Microservice API (FastAPI AI Server)
 fastapi>=0.100.0
