@@ -73,10 +73,10 @@ EAR_EYE_OPEN_THRESHOLD = 0.22     # Trên ngưỡng này coi như mắt mở
 MIN_BLINKS_REQUIRED = 1
 
 # Ngưỡng thử thách chuyển động đầu (Head Movement Challenge)
-HEAD_YAW_THRESHOLD = 14.0         # Ngưỡng góc quay trái/phải phân loại tĩnh (giảm từ 16.0 -> 14.0)
-HEAD_PITCH_THRESHOLD = 18.0       # Ngưỡng góc cúi/ngước cho phép khi nhìn thẳng (tăng từ 12.0 -> 18.0)
-HEAD_DELTA_YAW_THRESHOLD = 3.0    # Ngưỡng nhích nhẹ đầu tối thiểu (3.0 độ chuyển động thực tế từ mốc ban đầu)
-HEAD_DELTA_PITCH_THRESHOLD = 4.0  # Ngưỡng nhích nhẹ gật đầu tối thiểu
+HEAD_YAW_THRESHOLD = 14.0         # Ngưỡng góc quay trái/phải phân loại tĩnh
+HEAD_PITCH_THRESHOLD = 18.0       # Ngưỡng góc cúi/ngước cho phép khi nhìn thẳng
+HEAD_DELTA_YAW_THRESHOLD = 6.5    # Ngưỡng nhích nhẹ đầu thực tế từ mốc ban đầu (6.5 độ: tự nhiên, nhạy bén, chống rung camera/chớp mắt)
+HEAD_DELTA_PITCH_THRESHOLD = 7.0  # Ngưỡng nhích nhẹ gật đầu tối thiểu
 CHALLENGE_TIMEOUT_SECONDS = 10.0
 
 # =====================================================================

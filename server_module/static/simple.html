@@ -1,0 +1,1643 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>eKYC Xác Thực Sinh Trắc Học Tinh Gọn</title>
+  <!-- Google Fonts: Outfit & Plus Jakarta Sans -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
+  <style>
+    :root {
+      --bg-base: #060911;
+      --bg-card: rgba(13, 20, 36, 0.82);
+      --bg-glass: rgba(18, 26, 47, 0.65);
+      --border-subtle: rgba(255, 255, 255, 0.08);
+      --border-highlight: rgba(56, 189, 248, 0.35);
+      --cyan: #06b6d4;
+      --cyan-glow: rgba(6, 182, 212, 0.4);
+      --emerald: #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.45);
+      --amber: #f59e0b;
+      --amber-glow: rgba(245, 158, 11, 0.4);
+      --rose: #f43f5e;
+      --rose-glow: rgba(244, 63, 94, 0.45);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --font-heading: 'Outfit', sans-serif;
+      --font-body: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at 50% -15%, #132446 0%, var(--bg-base) 75%);
+      color: var(--text-primary);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow-x: hidden;
+      padding: 1.25rem 1rem 2.5rem;
+    }
+
+    /* Top Clean Header */
+    header {
+      width: 100%;
+      max-width: 580px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.25rem;
+      padding: 0.5rem 0.25rem;
+    }
+
+    .brand-wrap {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .brand-logo {
+      width: 38px;
+      height: 38px;
+      background: linear-gradient(135deg, #06b6d4, #3b82f6);
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+
+    .brand-logo svg {
+      width: 22px;
+      height: 22px;
+      fill: white;
+    }
+
+    .brand-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+      background: linear-gradient(120deg, #ffffff, #bae6fd);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      line-height: 1.2;
+    }
+
+    .brand-sub {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    .header-links {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn-dev-link {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      padding: 0.35rem 0.85rem;
+      font-size: 0.75rem;
+      color: var(--text-secondary);
+      text-decoration: none;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+
+    .btn-dev-link:hover {
+      background: rgba(255, 255, 255, 0.12);
+      color: var(--text-primary);
+      border-color: rgba(255, 255, 255, 0.2);
+    }
+
+    /* Stepper Bar */
+    .stepper {
+      width: 100%;
+      max-width: 580px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 0.5rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .step-item {
+      background: var(--bg-glass);
+      border: 1px solid var(--border-subtle);
+      border-radius: 12px;
+      padding: 0.6rem 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.3s ease;
+    }
+
+    .step-item.active {
+      background: rgba(6, 182, 212, 0.14);
+      border-color: var(--cyan);
+      box-shadow: 0 0 16px var(--cyan-glow);
+    }
+
+    .step-item.completed {
+      background: rgba(16, 185, 129, 0.12);
+      border-color: var(--emerald);
+    }
+
+    .step-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: all 0.3s;
+    }
+
+    .step-item.active .step-num {
+      background: var(--cyan);
+      color: #060911;
+      box-shadow: 0 0 8px var(--cyan);
+    }
+
+    .step-item.completed .step-num {
+      background: var(--emerald);
+      color: #060911;
+    }
+
+    .step-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .step-item.active .step-label {
+      color: #e0f2fe;
+    }
+
+    .step-item.completed .step-label {
+      color: #a7f3d0;
+    }
+
+    /* Kiosk Main Card */
+    .kiosk-card {
+      width: 100%;
+      max-width: 580px;
+      background: var(--bg-card);
+      border: 1px solid var(--border-subtle);
+      border-radius: 24px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65), 0 0 35px rgba(6, 182, 212, 0.08);
+      overflow: hidden;
+      backdrop-filter: blur(16px);
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    /* Camera Viewport */
+    .viewport {
+      position: relative;
+      width: 100%;
+      height: 520px;
+      background: #020408;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #webcamVideo {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transform: scaleX(-1);
+      display: block;
+    }
+
+    /* Live Bokeh Blur Overlay: làm mờ nền ngoài oval */
+    .bokeh-overlay {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      backdrop-filter: blur(16px) brightness(0.38);
+      -webkit-backdrop-filter: blur(16px) brightness(0.38);
+      mask-image: radial-gradient(ellipse 115px 175px at center 48%, transparent 95%, black 100%);
+      -webkit-mask-image: radial-gradient(ellipse 115px 175px at center 48%, transparent 95%, black 100%);
+      transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 5;
+    }
+
+    .bokeh-overlay.stage-turn {
+      mask-image: radial-gradient(ellipse 145px 185px at center 48%, transparent 95%, black 100%) !important;
+      -webkit-mask-image: radial-gradient(ellipse 145px 185px at center 48%, transparent 95%, black 100%) !important;
+    }
+
+    /* Center Scanner Oval */
+    .oval-wrapper {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+      z-index: 10;
+      padding-bottom: 24px;
+    }
+
+    .face-oval {
+      width: 230px;
+      height: 350px;
+      border-radius: 50% / 46%;
+      position: relative;
+      transition: all 0.35s ease;
+      border: 3px dashed var(--cyan);
+      box-shadow: 0 0 25px var(--cyan-glow), inset 0 0 20px rgba(6, 182, 212, 0.12);
+    }
+
+    /* State: Aligned & Ready */
+    .face-oval.state-aligned {
+      border: 3.5px solid var(--emerald) !important;
+      box-shadow: 0 0 35px var(--emerald-glow), inset 0 0 25px rgba(16, 185, 129, 0.2) !important;
+      animation: pulseAligned 1.4s infinite alternate;
+    }
+
+    @keyframes pulseAligned {
+      0% { transform: scale(1); }
+      100% { transform: scale(1.02); }
+    }
+
+    /* State: Warning (quá xa / lệch / mất mặt) */
+    .face-oval.state-warning {
+      border: 3.5px solid var(--amber) !important;
+      box-shadow: 0 0 30px var(--amber-glow), inset 0 0 20px rgba(245, 158, 11, 0.2) !important;
+    }
+
+    /* State: In Challenge (Chớp mắt / Quay đầu) */
+    .face-oval.state-challenge {
+      border: 3.5px solid #38bdf8 !important;
+      box-shadow: 0 0 35px rgba(56, 189, 248, 0.55), inset 0 0 30px rgba(56, 189, 248, 0.2) !important;
+    }
+
+    /* State: Head Rotation (Phóng to oval ngang +25%) */
+    .face-oval.stage-turn {
+      width: 290px !important;
+      height: 370px !important;
+      border-radius: 48% / 46% !important;
+      border: 3.5px solid #38bdf8 !important;
+      box-shadow: 0 0 45px rgba(56, 189, 248, 0.65), inset 0 0 30px rgba(56, 189, 248, 0.25) !important;
+    }
+
+    /* Radar laser scan line */
+    .radar-beam {
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 3px;
+      background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+      box-shadow: 0 0 15px var(--cyan);
+      animation: radarScan 2.4s ease-in-out infinite alternate;
+    }
+
+    .face-oval.state-aligned .radar-beam,
+    .face-oval.state-challenge .radar-beam {
+      background: linear-gradient(90deg, transparent, var(--emerald), transparent);
+      box-shadow: 0 0 18px var(--emerald);
+    }
+
+    @keyframes radarScan {
+      0% { top: 8%; opacity: 0.3; }
+      50% { opacity: 1; }
+      100% { top: 92%; opacity: 0.3; }
+    }
+
+    /* Big Countdown Badge (3.. 2.. 1..) */
+    .countdown-circle {
+      position: absolute;
+      top: 48%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 96px;
+      height: 96px;
+      border-radius: 50%;
+      background: rgba(6, 182, 212, 0.92);
+      border: 3px solid #fff;
+      box-shadow: 0 0 45px var(--cyan-glow);
+      color: #fff;
+      font-family: var(--font-heading);
+      font-size: 3.4rem;
+      font-weight: 800;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 25;
+      animation: popIn 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes popIn {
+      0% { transform: translate(-50%, -50%) scale(0.4); opacity: 0; }
+      100% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+    }
+
+    /* Screen Flash Overlay */
+    .screen-flash {
+      position: absolute;
+      inset: 0;
+      background: #fff;
+      opacity: 0;
+      pointer-events: none;
+      z-index: 25;
+      transition: opacity 0.35s ease-out;
+    }
+
+    .screen-flash.active {
+      opacity: 0.85;
+      transition: none;
+    }
+
+    /* Camera Off / Permission Card */
+    .cam-fallback {
+      position: absolute;
+      inset: 0;
+      background: #090e1a;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      z-index: 30;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    .cam-fallback-icon {
+      width: 68px;
+      height: 68px;
+      border-radius: 50%;
+      background: rgba(6, 182, 212, 0.12);
+      border: 1px solid var(--border-highlight);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 1.2rem;
+      color: var(--cyan);
+    }
+
+    .btn-start-cam {
+      background: linear-gradient(135deg, #06b6d4, #2563eb);
+      border: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.75rem 1.8rem;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 0 25px var(--cyan-glow);
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      transition: all 0.25s ease;
+      margin-top: 1rem;
+    }
+
+    .btn-start-cam:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.6);
+    }
+
+    /* Dynamic Guidance Bar & Challenge Cards (Bên dưới khung nhìn) */
+    .guidance-bar {
+      padding: 1.25rem 1.5rem;
+      background: linear-gradient(180deg, rgba(13, 20, 36, 0.95), rgba(7, 10, 18, 0.98));
+      border-top: 1px solid var(--border-subtle);
+      display: flex;
+      flex-direction: column;
+      gap: 0.85rem;
+      z-index: 20;
+    }
+
+    /* Pill trạng thái căn chỉnh */
+    .instruction-pill {
+      background: rgba(18, 27, 48, 0.85);
+      border: 1px solid var(--border-subtle);
+      border-radius: 999px;
+      padding: 0.65rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.6rem;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+      transition: all 0.3s ease;
+    }
+
+    .instruction-pill.state-aligned {
+      border-color: var(--emerald);
+      background: rgba(16, 185, 129, 0.12);
+    }
+
+    .instruction-pill.state-warning {
+      border-color: var(--amber);
+      background: rgba(245, 158, 11, 0.14);
+    }
+
+    .pill-icon {
+      font-size: 1.2rem;
+    }
+
+    .pill-text {
+      font-size: 0.92rem;
+      font-weight: 700;
+      letter-spacing: 0.01em;
+      text-transform: uppercase;
+      text-align: center;
+    }
+
+    /* Challenge Active HUD Card (Chớp mắt / Quay đầu) */
+    .challenge-box {
+      background: rgba(18, 27, 48, 0.92);
+      border: 1px solid rgba(56, 189, 248, 0.35);
+      border-radius: 16px;
+      padding: 1rem 1.25rem;
+      display: none;
+      flex-direction: column;
+      gap: 0.75rem;
+      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.45);
+      animation: popIn 0.3s ease;
+    }
+
+    .challenge-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .challenge-tag {
+      font-size: 0.76rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: #38bdf8;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .challenge-timer {
+      font-family: var(--font-heading);
+      font-size: 0.95rem;
+      font-weight: 700;
+      background: rgba(255, 255, 255, 0.08);
+      padding: 0.2rem 0.65rem;
+      border-radius: 999px;
+      color: #bae6fd;
+    }
+
+    .challenge-timer.urgent {
+      background: rgba(244, 63, 94, 0.25);
+      color: #fecdd3;
+      animation: pulseAlert 0.8s infinite alternate;
+    }
+
+    @keyframes pulseAlert {
+      0% { opacity: 0.8; }
+      100% { opacity: 1; transform: scale(1.05); }
+    }
+
+    .challenge-main {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .challenge-action-icon {
+      font-size: 2.2rem;
+      width: 50px;
+      height: 50px;
+      border-radius: 14px;
+      background: rgba(56, 189, 248, 0.12);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .challenge-prompt-wrap {
+      flex: 1;
+    }
+
+    .challenge-title {
+      font-family: var(--font-heading);
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.25;
+      text-transform: uppercase;
+    }
+
+    .challenge-hint {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 2px;
+    }
+
+    .progress-bar-wrap {
+      width: 100%;
+      height: 7px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 999px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      height: 100%;
+      width: 0%;
+      background: linear-gradient(90deg, #06b6d4, #10b981);
+      border-radius: 999px;
+      transition: width 0.15s ease-out;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.5);
+    }
+
+    /* Modal Kết Quả Cuối Cùng (Success / Fail) */
+    .result-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(6, 9, 17, 0.95);
+      backdrop-filter: blur(18px);
+      z-index: 50;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+      text-align: center;
+      animation: popIn 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+
+    .result-badge {
+      width: 90px;
+      height: 90px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 3rem;
+      margin-bottom: 1.25rem;
+    }
+
+    .result-badge.success {
+      background: rgba(16, 185, 129, 0.15);
+      border: 2px solid var(--emerald);
+      box-shadow: 0 0 45px var(--emerald-glow);
+      color: var(--emerald);
+    }
+
+    .result-badge.fail {
+      background: rgba(244, 63, 94, 0.15);
+      border: 2px solid var(--rose);
+      box-shadow: 0 0 45px var(--rose-glow);
+      color: var(--rose);
+    }
+
+    .result-title {
+      font-family: var(--font-heading);
+      font-size: 1.8rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+    }
+
+    .result-title.success {
+      color: var(--emerald);
+    }
+
+    .result-title.fail {
+      color: var(--rose);
+    }
+
+    .result-desc {
+      font-size: 0.92rem;
+      color: var(--text-secondary);
+      max-width: 400px;
+      line-height: 1.5;
+      margin-bottom: 1.8rem;
+    }
+
+    .btn-retry {
+      background: linear-gradient(135deg, #06b6d4, #2563eb);
+      border: none;
+      color: #fff;
+      font-family: var(--font-heading);
+      font-weight: 700;
+      font-size: 1rem;
+      padding: 0.75rem 2rem;
+      border-radius: 999px;
+      cursor: pointer;
+      box-shadow: 0 0 25px var(--cyan-glow);
+      transition: all 0.25s ease;
+    }
+
+    .btn-retry:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 35px rgba(6, 182, 212, 0.6);
+    }
+
+    /* Auto-Restart Toast Alert */
+    .toast-restart {
+      position: absolute;
+      top: 18px;
+      left: 20px;
+      right: 20px;
+      background: rgba(245, 158, 11, 0.95);
+      color: #060911;
+      padding: 0.65rem 1rem;
+      border-radius: 12px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      z-index: 40;
+      box-shadow: 0 8px 25px rgba(0, 0, 0, 0.5);
+      animation: popIn 0.3s ease;
+    }
+
+    /* Spinner Animation */
+    .spinner {
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(255, 255, 255, 0.2);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      display: inline-block;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive */
+    @media (max-width: 600px) {
+      body {
+        padding: 0.75rem 0.5rem 1.5rem;
+      }
+      .viewport {
+        height: 460px;
+      }
+      .face-oval {
+        width: 200px;
+        height: 310px;
+      }
+      .face-oval.stage-turn {
+        width: 250px !important;
+        height: 330px !important;
+      }
+      .bokeh-overlay {
+        mask-image: radial-gradient(ellipse 100px 155px at center 48%, transparent 95%, black 100%);
+        -webkit-mask-image: radial-gradient(ellipse 100px 155px at center 48%, transparent 95%, black 100%);
+      }
+      .bokeh-overlay.stage-turn {
+        mask-image: radial-gradient(ellipse 125px 165px at center 48%, transparent 95%, black 100%) !important;
+        -webkit-mask-image: radial-gradient(ellipse 125px 165px at center 48%, transparent 95%, black 100%) !important;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <!-- Clean Header -->
+  <header>
+    <div class="brand-wrap">
+      <div class="brand-logo">
+        <svg viewBox="0 0 24 24">
+          <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z" />
+        </svg>
+      </div>
+      <div>
+        <div class="brand-title">eKYC AI Verified</div>
+        <div class="brand-sub">Xác thực danh tính sinh trắc học</div>
+      </div>
+    </div>
+    <div class="header-links">
+      <a href="/" class="btn-dev-link" title="Mở bảng điều khiển chuyên sâu đầy đủ thông số">
+        <span>⚙️ Chế độ Chuyên Sâu</span>
+      </a>
+    </div>
+  </header>
+
+  <!-- 3-Step Indicator Bar -->
+  <div class="stepper">
+    <div class="step-item active" id="stepNode1">
+      <div class="step-num" id="stepNum1">1</div>
+      <div class="step-label">Căn Chỉnh Mặt</div>
+    </div>
+    <div class="step-item" id="stepNode2">
+      <div class="step-num" id="stepNum2">2</div>
+      <div class="step-label">Chớp Mắt</div>
+    </div>
+    <div class="step-item" id="stepNode3">
+      <div class="step-num" id="stepNum3">3</div>
+      <div class="step-label">Quay Đầu</div>
+    </div>
+  </div>
+
+  <!-- Kiosk Viewport Card -->
+  <div class="kiosk-card">
+    <div class="viewport" id="viewport">
+      <!-- Live Video Element -->
+      <video id="webcamVideo" autoplay playsinline muted></video>
+
+      <!-- Live Bokeh Blur Overlay: Làm mờ ngoại vi, vùng Oval ở giữa giữ nét 100% -->
+      <div class="bokeh-overlay" id="bokehOverlay"></div>
+
+      <!-- Center Oval Guide -->
+      <div class="oval-wrapper">
+        <div class="face-oval" id="faceOval">
+          <div class="radar-beam"></div>
+        </div>
+      </div>
+
+      <!-- Auto-Capture Countdown Circle (3.. 2.. 1..) -->
+      <div class="countdown-circle" id="countdownCircle">3</div>
+
+      <!-- White Screen Flash on Capture -->
+      <div class="screen-flash" id="screenFlash"></div>
+
+      <!-- Auto-Restart Toast -->
+      <div class="toast-restart" id="toastRestart">
+        <span>⚠️ MẶT ĐÃ RỜI OVAL - ĐANG TỰ ĐỘNG LÀM LẠI BƯỚC 1...</span>
+      </div>
+
+      <!-- Camera Off Placeholder -->
+      <div class="cam-fallback" id="camFallback">
+        <div class="cam-fallback-icon">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+          </svg>
+        </div>
+        <h3 style="font-family: var(--font-heading); margin-bottom: 0.4rem;">Chưa Bật Camera</h3>
+        <p style="font-size: 0.85rem; color: var(--text-secondary); max-width: 320px;">Vui lòng cấp quyền truy cập camera để hệ thống tiến hành kiểm tra khuôn mặt của bạn.</p>
+        <button class="btn-start-cam" onclick="initWebcam()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+            <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+          </svg>
+          <span>Bật Camera Ngay</span>
+        </button>
+      </div>
+
+      <!-- Final Result Overlay Card -->
+      <div class="result-overlay" id="resultOverlay">
+        <div class="result-badge success" id="resultBadge">✅</div>
+        <div class="result-title success" id="resultTitle">Xác Thực Thành Công!</div>
+        <div class="result-desc" id="resultDesc">Khuôn mặt và thực thể sống sinh trắc học đã được xác thực hoàn toàn an toàn.</div>
+        <button class="btn-retry" id="btnRestartAll" onclick="restartEntireProcess()">
+          <span>Thực Hiện Lại</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Guidance Bar below viewport -->
+    <div class="guidance-bar">
+      <!-- Step 1 Instruction Pill -->
+      <div class="instruction-pill" id="instructionPill">
+        <span class="pill-icon" id="pillIcon">🎯</span>
+        <span class="pill-text" id="pillText">ĐƯA KHUÔN MẶT VÀO GIỮA KHUNG OVAL</span>
+      </div>
+
+      <!-- Challenge Active Box (Steps 2 & 3) -->
+      <div class="challenge-box" id="challengeBox">
+        <div class="challenge-top">
+          <span class="challenge-tag" id="challengeStageTag">
+            <span class="spinner" style="width: 12px; height: 12px; border-width: 2px;"></span>
+            <span id="challengeStageLabel">BƯỚC 2/3: THỬ THÁCH CHỚP MẮT</span>
+          </span>
+          <span class="challenge-timer" id="challengeTimer">10.0s</span>
+        </div>
+
+        <div class="challenge-main">
+          <div class="challenge-action-icon" id="challengeIcon">👁️</div>
+          <div class="challenge-prompt-wrap">
+            <div class="challenge-title" id="challengeTitle">VUI LÒNG CHỚP MẮT TỰ NHIÊN</div>
+            <div class="challenge-hint" id="challengeHint">Nhìn thẳng và chớp mắt 1 lần để hoàn thành</div>
+          </div>
+        </div>
+
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="challengeProgress"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Hidden Canvas for Video Extraction -->
+  <canvas id="hiddenCanvas" style="display: none;"></canvas>
+
+  <script>
+    // =========================================================================
+    // CONFIG & CONSTANTS
+    // =========================================================================
+    const API_BASE_URL = window.location.origin;
+
+    const APP_STATE = {
+      IDLE: 'IDLE',
+      PREVIEW_ALIGN: 'PREVIEW_ALIGN',
+      COUNTDOWN: 'COUNTDOWN',
+      CHALLENGE_BLINK: 'CHALLENGE_BLINK',
+      CHALLENGE_HEAD: 'CHALLENGE_HEAD',
+      FINAL_VERIFYING: 'FINAL_VERIFYING',
+      FINISHED: 'FINISHED'
+    };
+
+    let currentState = APP_STATE.IDLE;
+    let webcamStream = null;
+    let poseCheckInterval = null;
+    let challengeLoopInterval = null;
+    let isPoseChecking = false;
+
+    // Challenge & Biometric Session State
+    let livenessSessionId = null;
+    let baseFrameBlob = null;
+    let blinkSuccessBlob = null;
+    let headSuccessBlob = null;
+
+    let consecutiveGoodFrames = 0;
+    let countdownTimer = null;
+    let countdownVal = 3;
+
+    // Blink Challenge state
+    let blinkCounter = 0;
+    let blinkState = false;
+    let blinkBaselineEAR = 0.0;
+    let isBlinkProcessing = false;
+
+    // Head Challenge state
+    let headChallengeAction = 'turn_left';
+    let headChallengePrompt = 'Nhích nhẹ đầu sang TRÁI';
+    let headTimeoutSeconds = 10.0;
+    let isHeadProcessing = false;
+
+    // =========================================================================
+    // INITIALIZATION & WEBCAM
+    // =========================================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      initWebcam();
+    });
+
+    async function initWebcam() {
+      const fallback = document.getElementById('camFallback');
+      const video = document.getElementById('webcamVideo');
+
+      try {
+        if (webcamStream) {
+          webcamStream.getTracks().forEach(t => t.stop());
+        }
+
+        webcamStream = await navigator.mediaDevices.getUserMedia({
+          video: {
+            width: { ideal: 1280, max: 1920 },
+            height: { ideal: 720, max: 1080 },
+            facingMode: 'user'
+          },
+          audio: false
+        });
+
+        video.srcObject = webcamStream;
+        await video.play();
+
+        fallback.style.display = 'none';
+        currentState = APP_STATE.PREVIEW_ALIGN;
+        setStep(1);
+        startPoseCheckLoop();
+      } catch (err) {
+        console.warn('Webcam permission error:', err);
+        fallback.style.display = 'flex';
+      }
+    }
+
+    // =========================================================================
+    // STEPPER UI UPDATE
+    // =========================================================================
+    function setStep(stepNum) {
+      for (let i = 1; i <= 3; i++) {
+        const node = document.getElementById(`stepNode${i}`);
+        const num = document.getElementById(`stepNum${i}`);
+        node.classList.remove('active', 'completed');
+
+        if (i < stepNum) {
+          node.classList.add('completed');
+          num.textContent = '✓';
+        } else if (i === stepNum) {
+          node.classList.add('active');
+          num.textContent = i;
+        } else {
+          num.textContent = i;
+        }
+      }
+    }
+
+    // =========================================================================
+    // STEP 1: POSE CHECK & OVAL FIT LOOP (Automated Hands-free)
+    // =========================================================================
+    function startPoseCheckLoop() {
+      stopPoseCheckLoop();
+
+      poseCheckInterval = setInterval(async () => {
+        if (currentState !== APP_STATE.PREVIEW_ALIGN && currentState !== APP_STATE.COUNTDOWN) return;
+        if (isPoseChecking) return;
+
+        const video = document.getElementById('webcamVideo');
+        if (!video || video.readyState < 2) return;
+
+        isPoseChecking = true;
+        try {
+          const frameBlob = await captureThumbnailBlob(video, 640, 480);
+          if (!frameBlob) return;
+
+          const formData = new FormData();
+          formData.append('file', frameBlob, 'frame.jpg');
+
+          const res = await fetch(`${API_BASE_URL}/api/v1/validate-pose`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            handlePoseCheckResult(data);
+          }
+        } catch (e) {
+          console.warn('Pose check error:', e);
+        } finally {
+          isPoseChecking = false;
+        }
+      }, 120); // ~8 FPS
+    }
+
+    function stopPoseCheckLoop() {
+      if (poseCheckInterval) {
+        clearInterval(poseCheckInterval);
+        poseCheckInterval = null;
+      }
+      isPoseChecking = false;
+    }
+
+    function handlePoseCheckResult(data) {
+      if (currentState !== APP_STATE.PREVIEW_ALIGN && currentState !== APP_STATE.COUNTDOWN) return;
+
+      const oval = document.getElementById('faceOval');
+      const pill = document.getElementById('instructionPill');
+      const pillIcon = document.getElementById('pillIcon');
+      const pillText = document.getElementById('pillText');
+
+      if (!data || !data.has_face) {
+        oval.className = 'face-oval';
+        pill.className = 'instruction-pill';
+        pillIcon.textContent = '🎯';
+        pillText.textContent = 'ĐƯA KHUÔN MẶT VÀO GIỮA KHUNG OVAL';
+        resetCountdown();
+        return;
+      }
+
+      if (data.num_faces !== undefined && data.num_faces > 1) {
+        oval.className = 'face-oval state-warning';
+        pill.className = 'instruction-pill state-warning';
+        pillIcon.textContent = '👥';
+        pillText.textContent = `PHÁT HIỆN ${data.num_faces} NGƯỜI! YÊU CẦU ĐỨNG 1 MÌNH`;
+        resetCountdown();
+        return;
+      }
+
+      if (data.is_occluded) {
+        oval.className = 'face-oval state-warning';
+        pill.className = 'instruction-pill state-warning';
+        pillIcon.textContent = '👓';
+        pillText.textContent = (data.message || 'VUI LÒNG THÁO KÍNH HOẶC KHẨU TRANG RA').toUpperCase();
+        resetCountdown();
+        return;
+      }
+
+      // KHI MẶT ĐÃ CHUẨN TRONG OVAL VÀ ĐẠT TẤT CẢ TIÊU CHÍ (is_aligned_good hoặc is_valid)
+      if (data.is_aligned_good || data.is_valid) {
+        oval.className = 'face-oval state-aligned';
+        pill.className = 'instruction-pill state-aligned';
+        pillIcon.textContent = '✨';
+        pillText.textContent = 'MẶT ĐÃ CHUẨN TRONG OVAL! GIỮ NGUYÊN...';
+
+        consecutiveGoodFrames++;
+        if (consecutiveGoodFrames >= 3 && currentState === APP_STATE.PREVIEW_ALIGN) {
+          startCountdown();
+        }
+        return;
+      }
+
+      // KHI CHƯA ĐẠT: CẢNH BÁO VÀ HƯỚNG DẪN CĂN CHỈNH
+      consecutiveGoodFrames = 0;
+      resetCountdown();
+
+      oval.className = 'face-oval state-warning';
+      pill.className = 'instruction-pill state-warning';
+
+      if (!data.face_in_oval) {
+        pillIcon.textContent = '🎯';
+        pillText.textContent = 'ĐƯA KHUÔN MẶT VÀO TRONG KHUNG OVAL';
+      } else if (data.is_off_center && data.off_center_hint) {
+        pillIcon.textContent = '🎯';
+        pillText.textContent = data.off_center_hint.toUpperCase();
+      } else if (data.is_too_far) {
+        pillIcon.textContent = '🔍';
+        pillText.textContent = 'TIẾN LẠI GẦN CAMERA HƠN';
+      } else if (data.is_too_close) {
+        pillIcon.textContent = '🔍';
+        pillText.textContent = 'LÙI RA XA CAMERA MỘT CHÚT';
+      } else {
+        pillIcon.textContent = '📐';
+        const guide = (data.guide && data.guide !== 'OK') ? data.guide : (data.message && data.message !== 'OK' ? data.message : 'NHÌN THẲNG TRỰC DIỆN VÀO CAMERA');
+        pillText.textContent = guide.toUpperCase();
+      }
+    }
+
+    // =========================================================================
+    // COUNTDOWN & AUTO-CAPTURE BƯỚC 1
+    // =========================================================================
+    function startCountdown() {
+      currentState = APP_STATE.COUNTDOWN;
+      countdownVal = 3;
+
+      const circle = document.getElementById('countdownCircle');
+      circle.textContent = countdownVal;
+      circle.style.display = 'flex';
+
+      countdownTimer = setInterval(() => {
+        countdownVal--;
+        if (countdownVal > 0) {
+          circle.textContent = countdownVal;
+        } else {
+          clearInterval(countdownTimer);
+          countdownTimer = null;
+          circle.style.display = 'none';
+          triggerCaptureAndStartChallenge();
+        }
+      }, 900);
+    }
+
+    function resetCountdown() {
+      consecutiveGoodFrames = 0;
+      if (countdownTimer) {
+        clearInterval(countdownTimer);
+        countdownTimer = null;
+      }
+      document.getElementById('countdownCircle').style.display = 'none';
+      if (currentState === APP_STATE.COUNTDOWN) {
+        currentState = APP_STATE.PREVIEW_ALIGN;
+      }
+    }
+
+    async function triggerCaptureAndStartChallenge() {
+      stopPoseCheckLoop();
+
+      // Hiệu ứng chớp sáng màn hình
+      const flash = document.getElementById('screenFlash');
+      flash.classList.add('active');
+      setTimeout(() => flash.classList.remove('active'), 250);
+
+      const video = document.getElementById('webcamVideo');
+      baseFrameBlob = await captureFullFrameBlob(video);
+
+      const pillText = document.getElementById('pillText');
+      pillText.textContent = 'ĐANG KHỞI TẠO PHIÊN THỬ THÁCH...';
+
+      // Khởi tạo phiên sinh trắc học trên server
+      try {
+        const formData = new FormData();
+        formData.append('file', baseFrameBlob, 'base_capture.jpg');
+        formData.append('base_frame', baseFrameBlob, 'base_capture.jpg');
+
+        const res = await fetch(`${API_BASE_URL}/api/v1/liveness/init-session`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success) {
+            livenessSessionId = data.session_id;
+            proceedToBlinkChallenge();
+            return;
+          } else {
+            showToastAlert(data.message || 'Khuôn mặt chưa đạt chuẩn. Vui lòng căn chỉnh lại.');
+            restartEntireProcess();
+            return;
+          }
+        } else {
+          const errData = await res.json().catch(() => ({}));
+          showToastAlert(errData.detail || 'Khuôn mặt chưa khớp chuẩn. Vui lòng căn chỉnh lại.');
+          restartEntireProcess();
+          return;
+        }
+      } catch (e) {
+        console.warn('Init session error:', e);
+      }
+
+      showToastAlert('Lỗi khởi tạo phiên xác thực. Đang thử lại...');
+      restartEntireProcess();
+    }
+
+    // =========================================================================
+    // STEP 2: BLINK CHALLENGE LOOP
+    // =========================================================================
+    function proceedToBlinkChallenge() {
+      currentState = APP_STATE.CHALLENGE_BLINK;
+      setStep(2);
+
+      // Hiển thị Challenge Card
+      document.getElementById('instructionPill').style.display = 'none';
+      const cBox = document.getElementById('challengeBox');
+      cBox.style.display = 'flex';
+
+      document.getElementById('challengeStageLabel').textContent = 'BƯỚC 2/3: THỬ THÁCH CHỚP MẮT';
+      document.getElementById('challengeIcon').textContent = '👁️';
+      document.getElementById('challengeTitle').textContent = 'VUI LÒNG CHỚP MẮT TỰ NHIÊN';
+      document.getElementById('challengeHint').textContent = 'Nhìn vào camera và chớp mắt nhẹ nhàng';
+      document.getElementById('challengeProgress').style.width = '0%';
+
+      const oval = document.getElementById('faceOval');
+      oval.className = 'face-oval state-challenge';
+
+      startBlinkLoop();
+    }
+
+    function startBlinkLoop() {
+      stopChallengeLoop();
+      const blinkStartTime = Date.now();
+      const maxBlinkTimeoutSec = 10.0;
+      let consecutiveNoFaceFrames = 0;
+
+      challengeLoopInterval = setInterval(async () => {
+        if (currentState !== APP_STATE.CHALLENGE_BLINK || isBlinkProcessing) return;
+
+        const video = document.getElementById('webcamVideo');
+        if (!video || video.readyState < 2) return;
+
+        const elapsedSec = (Date.now() - blinkStartTime) / 1000;
+        const localTimeLeft = Math.max(0.0, maxBlinkTimeoutSec - elapsedSec);
+
+        const timerElem = document.getElementById('challengeTimer');
+        timerElem.textContent = `${localTimeLeft.toFixed(1)}s`;
+        timerElem.classList.toggle('urgent', localTimeLeft < 3.0);
+
+        if (localTimeLeft <= 0) {
+          stopChallengeLoop();
+          showFinalResult(false, 'Hết thời gian thực hiện thử thách chớp mắt (10s). Vui lòng thử lại.');
+          return;
+        }
+
+        isBlinkProcessing = true;
+        try {
+          const frameBlob = await captureThumbnailBlob(video, 640, 480);
+          if (!frameBlob) return;
+
+          const formData = new FormData();
+          formData.append('file', frameBlob, 'frame.jpg');
+          if (livenessSessionId) formData.append('session_id', livenessSessionId);
+          formData.append('blink_counter', blinkCounter);
+          formData.append('blink_state', blinkState ? 'true' : 'false');
+          formData.append('baseline_ear', blinkBaselineEAR);
+
+          const res = await fetch(`${API_BASE_URL}/api/v1/liveness/blink-frame`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+
+            // 1. Kiểm tra mất mặt khỏi Oval (Grace period 3 frames)
+            if (data.has_face === false || data.face_lost) {
+              consecutiveNoFaceFrames++;
+              if (consecutiveNoFaceFrames >= 3) {
+                restartPipelineDueToFaceLoss(data.error || 'Khuôn mặt đã rời khỏi khung oval');
+                return;
+              }
+              document.getElementById('faceOval').className = 'face-oval state-warning';
+              return;
+            } else {
+              consecutiveNoFaceFrames = 0;
+            }
+
+            // 2. Kiểm tra Face Mismatch (đổi người)
+            if (data.same_person === false || data.should_restart) {
+              if (data.should_restart) {
+                restartPipelineDueToFaceLoss(data.error || 'Phát hiện đổi người (Face Mismatch)');
+                return;
+              }
+              document.getElementById('challengeTitle').textContent = 'VUI LÒNG NHÌN THẲNG CAMERA';
+              return;
+            }
+
+            // 3. Cập nhật tiến trình chớp mắt
+            blinkCounter = data.blink_counter || 0;
+            blinkState = Boolean(data.blink_state);
+            blinkBaselineEAR = data.baseline_ear || blinkBaselineEAR;
+
+            const pct = Math.round((data.progress || 0) * 100);
+            document.getElementById('challengeProgress').style.width = `${pct}%`;
+
+            if (blinkState) {
+              document.getElementById('challengeIcon').textContent = '😉';
+              document.getElementById('challengeTitle').textContent = 'ĐANG NHẮM MẮT... MỞ MẮT ĐỂ HOÀN TẤT';
+            } else {
+              document.getElementById('challengeIcon').textContent = '👁️';
+              document.getElementById('challengeTitle').textContent = data.passed ? 'CHỚP MẮT THÀNH CÔNG!' : 'VUI LÒNG CHỚP MẮT TỰ NHIÊN';
+            }
+
+            if (data.passed) {
+              blinkSuccessBlob = frameBlob;
+              stopChallengeLoop();
+              document.getElementById('challengeProgress').style.width = '100%';
+              document.getElementById('challengeIcon').textContent = '✅';
+              document.getElementById('challengeTitle').textContent = 'CHỚP MẮT THÀNH CÔNG!';
+              document.getElementById('challengeHint').textContent = 'Đang chuyển sang Bước 3: Thử thách quay đầu...';
+
+              setTimeout(() => {
+                proceedToHeadChallenge();
+              }, 700);
+            }
+          }
+        } catch (e) {
+          console.warn('Blink challenge error:', e);
+        } finally {
+          isBlinkProcessing = false;
+        }
+      }, 75);
+    }
+
+    // =========================================================================
+    // STEP 3: HEAD MOVEMENT CHALLENGE LOOP
+    // =========================================================================
+    async function proceedToHeadChallenge() {
+      currentState = APP_STATE.CHALLENGE_HEAD;
+      setStep(3);
+
+      // Phóng to Oval khi quay đầu
+      document.getElementById('faceOval').className = 'face-oval state-challenge stage-turn';
+      document.getElementById('bokehOverlay').classList.add('stage-turn');
+
+      // Đặt trước thông báo chuẩn bị
+      document.getElementById('challengeStageLabel').textContent = 'BƯỚC 3/3: THỬ THÁCH QUAY ĐẦU';
+      document.getElementById('challengeIcon').textContent = '🔄';
+      document.getElementById('challengeTitle').textContent = 'CHUẨN BỊ QUAY ĐẦU...';
+      document.getElementById('challengeHint').textContent = 'Nhìn thẳng camera và chuẩn bị nhích nhẹ đầu theo hướng dẫn';
+      document.getElementById('challengeProgress').style.width = '0%';
+      document.getElementById('challengeTimer').textContent = '10.0s';
+
+      // Lấy hướng quay ngẫu nhiên từ server
+      try {
+        const startUrl = livenessSessionId 
+          ? `${API_BASE_URL}/api/v1/liveness/start-head?session_id=${encodeURIComponent(livenessSessionId)}` 
+          : `${API_BASE_URL}/api/v1/liveness/start-head`;
+        const res = await fetch(startUrl, { method: 'POST' });
+        if (res.ok) {
+          const data = await res.json();
+          headChallengeAction = data.action;
+          headChallengePrompt = data.prompt;
+          headTimeoutSeconds = data.timeout_seconds || 10.0;
+        }
+      } catch (e) {
+        console.warn('Start head error:', e);
+      }
+
+      let dirIcon = '🔄';
+      if (headChallengeAction.includes('left')) dirIcon = '⬅️';
+      else if (headChallengeAction.includes('right')) dirIcon = '➡️';
+      else if (headChallengeAction.includes('up')) dirIcon = '⬆️';
+      else if (headChallengeAction.includes('down')) dirIcon = '⬇️';
+
+      document.getElementById('challengeStageLabel').textContent = 'BƯỚC 3/3: THỬ THÁCH QUAY ĐẦU';
+      document.getElementById('challengeIcon').textContent = dirIcon;
+      document.getElementById('challengeTitle').textContent = headChallengePrompt.toUpperCase();
+      document.getElementById('challengeHint').textContent = 'Nhìn thẳng, sau đó nhích nhẹ đầu theo hướng mũi tên đến khi đạt 100%';
+      document.getElementById('challengeProgress').style.width = '0%';
+      document.getElementById('challengeTimer').textContent = `${headTimeoutSeconds.toFixed(1)}s`;
+
+      // Tạo khoảng đệm 800ms để người dùng đọc kịp hướng và lấy baseline chuẩn khi đang nhìn thẳng
+      setTimeout(() => {
+        if (currentState === APP_STATE.CHALLENGE_HEAD) {
+          startHeadLoop();
+        }
+      }, 800);
+    }
+
+    function startHeadLoop() {
+      stopChallengeLoop();
+      const headStartTime = Date.now();
+      const maxHeadTimeoutSec = headTimeoutSeconds + 2.0;
+      let consecutiveNoFaceFrames = 0;
+
+      challengeLoopInterval = setInterval(async () => {
+        if (currentState !== APP_STATE.CHALLENGE_HEAD || isHeadProcessing) return;
+
+        const video = document.getElementById('webcamVideo');
+        if (!video || video.readyState < 2) return;
+
+        const elapsedSec = (Date.now() - headStartTime) / 1000;
+        const localTimeLeft = Math.max(0.0, maxHeadTimeoutSec - elapsedSec);
+
+        const timerElem = document.getElementById('challengeTimer');
+        timerElem.textContent = `${localTimeLeft.toFixed(1)}s`;
+        timerElem.classList.toggle('urgent', localTimeLeft < 2.5);
+
+        if (localTimeLeft <= 0) {
+          stopChallengeLoop();
+          showFinalResult(false, 'Hết thời gian thực hiện thử thách quay đầu. Vui lòng thử lại.');
+          return;
+        }
+
+        isHeadProcessing = true;
+        try {
+          const frameBlob = await captureThumbnailBlob(video, 640, 480);
+          if (!frameBlob) return;
+
+          const formData = new FormData();
+          formData.append('file', frameBlob, 'frame.jpg');
+          if (livenessSessionId) formData.append('session_id', livenessSessionId);
+
+          const res = await fetch(`${API_BASE_URL}/api/v1/liveness/update-head`, {
+            method: 'POST',
+            body: formData
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+
+            // 1. Kiểm tra mất mặt khỏi Oval (Grace period 3 frames)
+            if (data.has_face === false || data.face_lost) {
+              consecutiveNoFaceFrames++;
+              if (consecutiveNoFaceFrames >= 3) {
+                restartPipelineDueToFaceLoss(data.error || 'Khuôn mặt đã rời khỏi khung oval');
+                return;
+              }
+              document.getElementById('faceOval').className = 'face-oval state-warning stage-turn';
+              return;
+            } else {
+              consecutiveNoFaceFrames = 0;
+            }
+
+            // 2. Kiểm tra Face Mismatch (đổi người)
+            if (data.same_person === false || data.should_restart) {
+              if (data.should_restart || data.state === 'FAILED') {
+                restartPipelineDueToFaceLoss(data.error || 'Phát hiện đổi người (Face Mismatch)');
+                return;
+              }
+              document.getElementById('challengeTitle').textContent = 'GIỮ KHUÔN MẶT TRONG OVAL';
+              return;
+            }
+
+            // 3. Cập nhật tiến trình quay đầu
+            const pct = Math.min(100, Math.round((data.progress || 0) * 100));
+            document.getElementById('challengeProgress').style.width = `${pct}%`;
+
+            if (data.prompt) {
+              document.getElementById('challengeTitle').textContent = data.prompt.toUpperCase();
+            }
+
+            if (data.passed) {
+              headSuccessBlob = frameBlob;
+              stopChallengeLoop();
+              document.getElementById('challengeProgress').style.width = '100%';
+              document.getElementById('challengeIcon').textContent = '✅';
+              document.getElementById('challengeTitle').textContent = 'HOÀN THÀNH QUAY ĐẦU THÀNH CÔNG!';
+              document.getElementById('challengeHint').textContent = 'Đang tiến hành thẩm định sinh trắc học cuối cùng...';
+
+              setTimeout(() => {
+                submitFinalVerification();
+              }, 800);
+            }
+          }
+        } catch (e) {
+          console.warn('Head challenge error:', e);
+        } finally {
+          isHeadProcessing = false;
+        }
+      }, 100);
+    }
+
+    function stopChallengeLoop() {
+      if (challengeLoopInterval) {
+        clearInterval(challengeLoopInterval);
+        challengeLoopInterval = null;
+      }
+      isBlinkProcessing = false;
+      isHeadProcessing = false;
+    }
+
+    // =========================================================================
+    // STEP 4: SUBMIT VERIFICATION & SHOW CLEAN RESULT
+    // =========================================================================
+    async function submitFinalVerification() {
+      currentState = APP_STATE.FINAL_VERIFYING;
+
+      document.getElementById('challengeStageLabel').textContent = 'ĐANG XÁC THỰC SINH TRẮC HỌC...';
+      document.getElementById('challengeIcon').innerHTML = '<span class="spinner" style="width: 24px; height: 24px;"></span>';
+      document.getElementById('challengeTitle').textContent = 'ĐANG THẨM ĐỊNH AI DUAL-MODEL...';
+      document.getElementById('challengeHint').textContent = 'Vui lòng giữ nguyên màn hình trong giây lát';
+
+      try {
+        const formData = new FormData();
+        formData.append('file', baseFrameBlob, 'ekyc_capture.jpg');
+        formData.append('img_id', 'SIMPLE_' + Date.now());
+        formData.append('blink_passed', true);
+        formData.append('blink_count', blinkCounter || 1);
+        formData.append('head_passed', true);
+        formData.append('head_action', headChallengeAction);
+        formData.append('session_id', livenessSessionId);
+        if (blinkSuccessBlob) formData.append('blink_file', blinkSuccessBlob, 'blink.jpg');
+        if (headSuccessBlob) formData.append('head_file', headSuccessBlob, 'head.jpg');
+
+        const res = await fetch(`${API_BASE_URL}/api/v1/verify`, {
+          method: 'POST',
+          body: formData
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          const approved = data.final_decision && data.final_decision.approved;
+          const reasons = (data.final_decision && data.final_decision.reasons) || [];
+
+          if (approved) {
+            showFinalResult(true, 'Khuôn mặt và thực thể sống sinh trắc học của bạn đã được xác minh đạt chuẩn an toàn 100%.');
+          } else {
+            const reasonText = reasons.length > 0 ? reasons.join('; ') : 'Không đạt tiêu chí xác thực sinh trắc học.';
+            showFinalResult(false, reasonText);
+          }
+          return;
+        }
+      } catch (e) {
+        console.warn('Verify submit error:', e);
+      }
+
+      showFinalResult(false, 'Đã xảy ra lỗi trong quá trình thẩm định. Vui lòng thử lại.');
+    }
+
+    function showFinalResult(isSuccess, descText) {
+      currentState = APP_STATE.FINISHED;
+      stopChallengeLoop();
+      stopPoseCheckLoop();
+
+      const overlay = document.getElementById('resultOverlay');
+      const badge = document.getElementById('resultBadge');
+      const title = document.getElementById('resultTitle');
+      const desc = document.getElementById('resultDesc');
+      const btn = document.getElementById('btnRestartAll');
+
+      if (isSuccess) {
+        badge.className = 'result-badge success';
+        badge.textContent = '✓';
+        title.className = 'result-title success';
+        title.textContent = 'Xác Thực Thành Công!';
+        desc.textContent = descText;
+        btn.textContent = 'Hoàn Tất & Làm Lại';
+      } else {
+        badge.className = 'result-badge fail';
+        badge.textContent = '✕';
+        title.className = 'result-title fail';
+        title.textContent = 'Xác Thực Thất Bại';
+        desc.textContent = descText;
+        btn.textContent = 'Thử Lại Từ Đầu';
+      }
+
+      overlay.style.display = 'flex';
+    }
+
+    // =========================================================================
+    // AUTO-RESTART PIPELINE (Tự động khởi động lại từ Bước 1)
+    // =========================================================================
+    function restartPipelineDueToFaceLoss(reason = 'Khuôn mặt đã rời khỏi khung oval') {
+      console.warn('[Auto-Restart]', reason);
+      stopChallengeLoop();
+
+      // Hủy session trên backend
+      if (livenessSessionId) {
+        try {
+          const resetForm = new FormData();
+          resetForm.append('session_id', livenessSessionId);
+          fetch(`${API_BASE_URL}/api/v1/liveness/reset-session`, { method: 'POST', body: resetForm }).catch(() => {});
+        } catch (_) {}
+      }
+
+      showToastAlert(`⚠️ ${reason.toUpperCase()} - ĐANG LÀM LẠI TỪ BƯỚC 1...`);
+      restartEntireProcess();
+    }
+
+    function showToastAlert(msg) {
+      const toast = document.getElementById('toastRestart');
+      toast.textContent = msg;
+      toast.style.display = 'flex';
+      setTimeout(() => {
+        toast.style.display = 'none';
+      }, 3500);
+    }
+
+    function restartEntireProcess() {
+      stopChallengeLoop();
+      stopPoseCheckLoop();
+      resetCountdown();
+
+      livenessSessionId = null;
+      baseFrameBlob = null;
+      blinkSuccessBlob = null;
+      headSuccessBlob = null;
+      blinkCounter = 0;
+      blinkState = false;
+      isBlinkProcessing = false;
+      isHeadProcessing = false;
+
+      // Ẩn các modal
+      document.getElementById('resultOverlay').style.display = 'none';
+      document.getElementById('challengeBox').style.display = 'none';
+
+      // Hiện lại Step 1 UI
+      document.getElementById('instructionPill').style.display = 'flex';
+      document.getElementById('pillIcon').textContent = '🎯';
+      document.getElementById('pillText').textContent = 'ĐƯA KHUÔN MẶT VÀO GIỮA KHUNG OVAL';
+
+      const oval = document.getElementById('faceOval');
+      oval.className = 'face-oval';
+      oval.classList.remove('stage-turn');
+      document.getElementById('bokehOverlay').classList.remove('stage-turn');
+
+      setStep(1);
+      currentState = APP_STATE.PREVIEW_ALIGN;
+      startPoseCheckLoop();
+    }
+
+    // =========================================================================
+    // CANVAS HELPER FUNCTIONS
+    // =========================================================================
+    function captureThumbnailBlob(video, targetW, targetH) {
+      return new Promise((resolve) => {
+        if (!video || video.readyState < 2) {
+          resolve(null);
+          return;
+        }
+        const canvas = document.getElementById('hiddenCanvas');
+        canvas.width = targetW;
+        canvas.height = targetH;
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.translate(targetW, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, targetW, targetH);
+        ctx.restore();
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.85);
+      });
+    }
+
+    function captureFullFrameBlob(video) {
+      return new Promise((resolve) => {
+        if (!video || video.readyState < 2) {
+          resolve(null);
+          return;
+        }
+        const w = video.videoWidth || 1280;
+        const h = video.videoHeight || 720;
+        const canvas = document.getElementById('hiddenCanvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.save();
+        ctx.translate(w, 0);
+        ctx.scale(-1, 1);
+        ctx.drawImage(video, 0, 0, w, h);
+        ctx.restore();
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95);
+      });
+    }
+  </script>
+</body>
+
+</html>

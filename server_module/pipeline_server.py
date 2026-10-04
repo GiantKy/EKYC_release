@@ -229,7 +229,7 @@ class EKYCPipelineServer:
             yaw_threshold=HEAD_YAW_THRESHOLD,
             pitch_threshold=HEAD_PITCH_THRESHOLD,
             timeout=CHALLENGE_TIMEOUT_SECONDS,
-            min_consecutive_frames=2,
+            min_consecutive_frames=3,
             delta_yaw_threshold=HEAD_DELTA_YAW_THRESHOLD,
             delta_pitch_threshold=HEAD_DELTA_PITCH_THRESHOLD
         )
@@ -384,7 +384,19 @@ class EKYCPipelineServer:
                 "message": "Không thể trích xuất đặc trưng sinh trắc học từ khuôn mặt."
             }
 
+        # Luôn reset bộ detector dùng chung để tránh rò rỉ trạng thái cũ
+        if self.head_movement_detector is not None:
+            self.head_movement_detector.reset()
+
         sid = session_id or f"sess_{int(time.time()*1000)}_{uuid.uuid4().hex[:6]}"
+        head_det = HeadMovementDetector(
+            yaw_threshold=HEAD_YAW_THRESHOLD,
+            pitch_threshold=HEAD_PITCH_THRESHOLD,
+            timeout=CHALLENGE_TIMEOUT_SECONDS,
+            min_consecutive_frames=3,
+            delta_yaw_threshold=HEAD_DELTA_YAW_THRESHOLD,
+            delta_pitch_threshold=HEAD_DELTA_PITCH_THRESHOLD
+        )
         self.liveness_sessions[sid] = {
             "session_id": sid,
             "created_at": time.time(),
@@ -399,7 +411,10 @@ class EKYCPipelineServer:
             "head_passed": False,
             "blink_frame": None,
             "head_frame": None,
-            "blink_start_time": time.time()
+            "blink_start_time": time.time(),
+            "head_detector": head_det,
+            "head_mismatch_count": 0,
+            "blink_mismatch_count": 0
         }
 
         return {
@@ -416,8 +431,9 @@ class EKYCPipelineServer:
         """Hủy phiên thử thách và xóa descriptor để không tái sử dụng sang phiên mới."""
         if session_id and session_id in self.liveness_sessions:
             del self.liveness_sessions[session_id]
-            return True
-        return False
+        if self.head_movement_detector is not None:
+            self.head_movement_detector.reset()
+        return True
 
     # =========================================================================
     # 1. KIỂM TRA TƯ THẾ & CĂN CHỈNH KHUÔN MẶT (PRE-CAPTURE CHECK)
@@ -579,6 +595,7 @@ class EKYCPipelineServer:
             "has_face": True,
             "num_faces": num_faces,
             "is_valid": bool(is_valid_overall),
+            "pose_valid": bool(pose_valid),
             "face_in_oval": bool(face_in_oval),
             "fit_oval": bool(fit_oval),
             "ratio_to_oval": float(ratio_to_oval),
@@ -600,7 +617,7 @@ class EKYCPipelineServer:
                 "roll": round(float(pose_data.get("roll", 0.0)), 2),
                 "status_text": text_status
             },
-            "message": guide_msg if not is_valid_overall else "OK",
+            "message": guide_msg if not is_valid_overall else "Khuôn mặt chuẩn trong khung Oval!",
             "guide": guide_msg
         }
 
@@ -802,6 +819,34 @@ class EKYCPipelineServer:
             }
 
         has_face = bool(landmarks is not None and len(landmarks) >= 468 and num_faces > 0)
+        if not has_face:
+            return {
+                "has_face": False,
+                "num_faces": 0,
+                "fit_oval": False,
+                "face_lost": True,
+                "should_restart": True,
+                "is_too_far": True,
+                "is_too_close": False,
+                "is_off_center": False,
+                "same_person": False,
+                "passed": False,
+                "timed_out": False,
+                "time_left": round(CHALLENGE_TIMEOUT_SECONDS, 1),
+                "timeout_seconds": CHALLENGE_TIMEOUT_SECONDS,
+                "error": "Mặt đã rời khỏi khung oval. Vui lòng căn chỉnh lại.",
+                "label": "⚠️ MẶT RỜI OVAL",
+                "ear_left": 0.0,
+                "ear_right": 0.0,
+                "ear_avg": 0.0,
+                "baseline_ear": round(baseline_ear, 4),
+                "closed_thresh": 0.18,
+                "open_thresh": 0.21,
+                "blink_counter": current_blink_counter,
+                "blink_state": False,
+                "progress": 0.0
+            }
+
         ear_l, ear_r, ear_avg = compute_eye_aspect_ratio(landmarks) if landmarks else (0.0, 0.0, 0.0)
 
         # 1. Kiểm tra giới hạn thời gian thử thách chớp mắt (CHALLENGE_TIMEOUT_SECONDS = 10s)
@@ -982,28 +1027,63 @@ class EKYCPipelineServer:
                     base_desc, cand_desc, max_disparity_thresh=0.025, min_cosine_thresh=0.920
                 )
                 if not same_person:
-                    return {
-                        "has_face": True,
-                        "num_faces": 1,
-                        "fit_oval": True,
-                        "same_person": False,
-                        "passed": False,
-                        "timed_out": False,
-                        "time_left": round(blink_time_left, 1),
-                        "timeout_seconds": CHALLENGE_TIMEOUT_SECONDS,
-                        "error": "CẢNH BÁO: Phát hiện đổi người! Yêu cầu đúng người chụp ảnh ban đầu thực hiện thử thách.",
-                        "label": "⚠️ PHÁT HIỆN ĐỔI NGƯỜI (MISMATCH)",
-                        "identity_details": identity_details,
-                        "ear_left": round(ear_l, 4),
-                        "ear_right": round(ear_r, 4),
-                        "ear_avg": round(ear_avg, 4),
-                        "baseline_ear": round(baseline_ear, 4),
-                        "closed_thresh": 0.18,
-                        "open_thresh": 0.21,
-                        "blink_counter": current_blink_counter,
-                        "blink_state": False,
-                        "progress": 0.0
-                    }
+                    mismatch_count = 1
+                    if session_id and session_id in self.liveness_sessions:
+                        s = self.liveness_sessions[session_id]
+                        s["blink_mismatch_count"] = s.get("blink_mismatch_count", 0) + 1
+                        mismatch_count = s["blink_mismatch_count"]
+
+                    if mismatch_count < 3:
+                        return {
+                            "has_face": True,
+                            "num_faces": 1,
+                            "fit_oval": True,
+                            "same_person": False,
+                            "should_restart": False,
+                            "passed": False,
+                            "timed_out": False,
+                            "time_left": round(blink_time_left, 1),
+                            "timeout_seconds": CHALLENGE_TIMEOUT_SECONDS,
+                            "error": "Hình ảnh khuôn mặt biến đổi. Vui lòng nhìn thẳng vào camera.",
+                            "label": "⚠️ CĂN CHỈNH KHUÔN MẶT",
+                            "identity_details": identity_details,
+                            "ear_left": round(ear_l, 4),
+                            "ear_right": round(ear_r, 4),
+                            "ear_avg": round(ear_avg, 4),
+                            "baseline_ear": round(baseline_ear, 4),
+                            "closed_thresh": 0.18,
+                            "open_thresh": 0.21,
+                            "blink_counter": current_blink_counter,
+                            "blink_state": False,
+                            "progress": 0.0
+                        }
+                    else:
+                        return {
+                            "has_face": True,
+                            "num_faces": 1,
+                            "fit_oval": True,
+                            "same_person": False,
+                            "should_restart": True,
+                            "passed": False,
+                            "timed_out": False,
+                            "time_left": round(blink_time_left, 1),
+                            "timeout_seconds": CHALLENGE_TIMEOUT_SECONDS,
+                            "error": "CẢNH BÁO: Phát hiện đổi người! Yêu cầu đúng người chụp ảnh ban đầu thực hiện thử thách.",
+                            "label": "⚠️ PHÁT HIỆN ĐỔI NGƯỜI (MISMATCH)",
+                            "identity_details": identity_details,
+                            "ear_left": round(ear_l, 4),
+                            "ear_right": round(ear_r, 4),
+                            "ear_avg": round(ear_avg, 4),
+                            "baseline_ear": round(baseline_ear, 4),
+                            "closed_thresh": 0.18,
+                            "open_thresh": 0.21,
+                            "blink_counter": current_blink_counter,
+                            "blink_state": False,
+                            "progress": 0.0
+                        }
+                else:
+                    if session_id and session_id in self.liveness_sessions:
+                        self.liveness_sessions[session_id]["blink_mismatch_count"] = 0
 
         new_counter = current_blink_counter
         new_state = current_blink_state
@@ -1072,11 +1152,20 @@ class EKYCPipelineServer:
             "label": label
         }
 
-    def start_head_challenge(self) -> Dict[str, Any]:
+    def start_head_challenge(self, session_id: Optional[str] = None) -> Dict[str, Any]:
         """Khởi tạo một thử thách quay đầu ngẫu nhiên mới."""
         self._ensure_models_loaded()
-        action = self.head_movement_detector.start_challenge()
-        prompt = self.head_movement_detector.get_prompt()
+        det = None
+        if session_id and session_id in self.liveness_sessions:
+            det = self.liveness_sessions[session_id].get("head_detector")
+        if det is None:
+            det = self.head_movement_detector
+
+        action = det.start_challenge()
+        prompt = det.get_prompt()
+        if det is not self.head_movement_detector and self.head_movement_detector is not None:
+            self.head_movement_detector.start_challenge(action=action)
+
         return {
             "action": action.value,
             "prompt": prompt,
@@ -1091,6 +1180,18 @@ class EKYCPipelineServer:
     ) -> Dict[str, Any]:
         """Cập nhật frame cho thử thách quay đầu, kiểm tra 1 người duy nhất và kiểm tra nhận dạng cùng người chụp Bước 1."""
         self._ensure_models_loaded()
+
+        # Chọn detector theo session để cách ly trạng thái hoàn toàn
+        detector = self.head_movement_detector
+        if session_id and session_id in self.liveness_sessions:
+            sess_det = self.liveness_sessions[session_id].get("head_detector")
+            if sess_det is not None:
+                detector = sess_det
+
+        # Cơ chế tự phục hồi: nếu detector chưa ở trạng thái IN_PROGRESS thì khởi tạo challenge mới
+        if detector.state != ChallengeState.IN_PROGRESS:
+            detector.start_challenge()
+
         frame = load_image(frame_input)
         h, w = frame.shape[:2]
 
@@ -1109,12 +1210,35 @@ class EKYCPipelineServer:
                 "passed": False,
                 "num_faces": num_faces,
                 "same_person": False,
+                "should_restart": True,
                 "prompt": "VUI LÒNG CHỈ 1 NGƯỜI ĐỨNG TRƯỚC CAMERA",
                 "error": f"Phát hiện {num_faces} người trong khung hình (Yêu cầu 1 người duy nhất)",
                 "time_left": 0.0,
                 "progress": 0.0,
                 "current_angle": 0.0,
                 "target_threshold": 0.0,
+                "is_matched": False,
+                "pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
+            }
+
+        if not landmarks or len(landmarks) < 468 or num_faces == 0:
+            action_name = detector.current_action.value if detector.current_action else "TURN_HEAD"
+            return {
+                "state": "WARNING",
+                "action": action_name,
+                "passed": False,
+                "num_faces": 0,
+                "fit_oval": False,
+                "face_lost": True,
+                "should_restart": True,
+                "is_too_far": True,
+                "same_person": False,
+                "prompt": "⚠️ MẶT ĐÃ RỜI OVAL",
+                "error": "Mặt đã rời khỏi khung oval (Mất nhận diện landmark).",
+                "time_left": 10.0,
+                "progress": 0.0,
+                "current_angle": 0.0,
+                "target_threshold": float(detector.delta_yaw_threshold),
                 "is_matched": False,
                 "pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
             }
@@ -1127,7 +1251,7 @@ class EKYCPipelineServer:
             min_face_height=int(MIN_FACE_HEIGHT * 0.85)
         )
         if not fit_info["fit_oval"] and fit_info["is_too_far"]:
-            action_name = self.head_movement_detector.current_action.value if self.head_movement_detector.current_action else "TURN_HEAD"
+            action_name = detector.current_action.value if detector.current_action else "TURN_HEAD"
             return {
                 "state": "WARNING",
                 "action": action_name,
@@ -1141,7 +1265,7 @@ class EKYCPipelineServer:
                 "time_left": 10.0,
                 "progress": 0.0,
                 "current_angle": 0.0,
-                "target_threshold": 3.5,
+                "target_threshold": float(detector.delta_yaw_threshold),
                 "is_matched": False,
                 "pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
             }
@@ -1219,7 +1343,7 @@ class EKYCPipelineServer:
                         sess["head_mismatch_count"] = sess.get("head_mismatch_count", 0) + 1
                         mismatch_count = sess["head_mismatch_count"]
 
-                    action_name = self.head_movement_detector.current_action.value if self.head_movement_detector.current_action else "TURN_HEAD"
+                    action_name = detector.current_action.value if detector.current_action else "TURN_HEAD"
                     pose_out = {
                         "yaw": round(pose_dict.get("yaw", 0.0), 1),
                         "pitch": round(pose_dict.get("pitch", 0.0), 1),
@@ -1240,7 +1364,7 @@ class EKYCPipelineServer:
                             "time_left": 10.0,
                             "progress": 0.0,
                             "current_angle": round(pose_out.get("yaw", 0.0), 1),
-                            "target_threshold": 3.0,
+                            "target_threshold": float(detector.delta_yaw_threshold),
                             "is_matched": False,
                             "pose": pose_out
                         }
@@ -1252,6 +1376,7 @@ class EKYCPipelineServer:
                             "passed": False,
                             "num_faces": 1,
                             "same_person": False,
+                            "should_restart": True,
                             "prompt": "⚠️ CẢNH BÁO: PHÁT HIỆN ĐỔI NGƯỜI!",
                             "error": "CẢNH BÁO: Phát hiện đổi người! Yêu cầu đúng người chụp ảnh ban đầu thực hiện thử thách.",
                             "identity_details": identity_details,
@@ -1275,7 +1400,7 @@ class EKYCPipelineServer:
             pose_dict=pose_dict
         )
         if is_occluded:
-            action_name = self.head_movement_detector.current_action.value if self.head_movement_detector.current_action else "TURN_HEAD"
+            action_name = detector.current_action.value if detector.current_action else "TURN_HEAD"
             return {
                 "state": "WARNING",
                 "action": action_name,
@@ -1289,12 +1414,12 @@ class EKYCPipelineServer:
                 "time_left": 10.0,
                 "progress": 0.0,        # KHÔNG ĐỔI TIẾN TRÌNH
                 "current_angle": 0.0,   # KHÔNG ĐỔI GÓC QUAY HEAD YAW
-                "target_threshold": 3.5,
+                "target_threshold": float(detector.delta_yaw_threshold),
                 "is_matched": False,
                 "pose": {"yaw": 0.0, "pitch": 0.0, "roll": 0.0}
             }
 
-        status = self.head_movement_detector.update(pose_dict)
+        status = detector.update(pose_dict)
         clean_status = {
             "state": str(status.get("state", "")),
             "action": str(status.get("action", "")),
@@ -1564,7 +1689,11 @@ class EKYCPipelineServer:
                             bf, oval_center=oval_center, oval_axes=oval_axes, filter_oval=True
                         )
                         if cand_b is not None:
-                            is_same_b, _, dt_b = self.identity_verifier.verify_identity(base_desc, cand_b)
+                            is_same_b, _, dt_b = self.identity_verifier.verify_identity(
+                                base_desc, cand_b,
+                                max_disparity_thresh=0.028,
+                                min_cosine_thresh=0.915
+                            )
                             identity_details["blink_match"] = dt_b
                             if not is_same_b:
                                 c_same_person = False
@@ -1579,11 +1708,29 @@ class EKYCPipelineServer:
 
                     if hf is not None:
                         head_oval_axes = (int(oval_axes[0] * 1.25), oval_axes[1])
+                        # Ước lượng góc quay 3D của head frame để bù trừ thích ứng khi so khớp danh tính
+                        h_pose_angles = None
+                        h_landmarks, _ = self.landmark_detector.detect_with_count(
+                            hf, oval_center=oval_center, oval_axes=head_oval_axes, filter_oval=True
+                        )
+                        if h_landmarks and len(h_landmarks) >= 468:
+                            hf_h, hf_w = hf.shape[:2]
+                            _, _, h_pose = self.pose_validator.validate(h_landmarks, get_landmark_point, img_w=hf_w, img_h=hf_h)
+                            if h_pose:
+                                h_pose_angles = (
+                                    float(h_pose.get("yaw", 0.0)),
+                                    float(h_pose.get("pitch", 0.0)),
+                                    float(h_pose.get("roll", 0.0))
+                                )
                         cand_h = self.identity_verifier.extract_descriptor(
                             hf, oval_center=oval_center, oval_axes=head_oval_axes, filter_oval=True
                         )
                         if cand_h is not None:
-                            is_same_h, _, dt_h = self.identity_verifier.verify_identity(base_desc, cand_h)
+                            is_same_h, _, dt_h = self.identity_verifier.verify_identity(
+                                base_desc, cand_h,
+                                pose_angles=h_pose_angles,
+                                is_head_challenge=True
+                            )
                             identity_details["head_match"] = dt_h
                             if not is_same_h:
                                 c_same_person = False

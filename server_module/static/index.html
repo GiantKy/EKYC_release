@@ -1881,6 +1881,9 @@
         </div>
       </div>
       <div class="nav-badges">
+        <a href="/simple" class="badge-chip" style="background: rgba(6, 182, 212, 0.12); border-color: var(--cyan); color: #a5f3fc; text-decoration: none; font-weight: 600; transition: all 0.2s;" title="Chuyển sang giao diện người dùng tinh gọn, chỉ giữ khung oval và hướng dẫn">
+          <span>✨ Giao Diện Simple</span>
+        </a>
         <div class="badge-chip">
           <span class="status-dot"></span>
           <span id="aiServerStatus">AI Engine Online</span>
@@ -3713,6 +3716,75 @@
     }
 
     // =========================================================================
+    // AUTO-RESTART PIPELINE (Tự động khởi động lại từ Bước 1 khi mặt rời Oval hoặc Mismatch)
+    // =========================================================================
+    function restartPipelineDueToFaceLoss(reason = 'Khuôn mặt đã rời khỏi khung oval') {
+      console.warn('[Auto-Restart Pipeline]', reason);
+
+      // 1. Dừng ngay lập tức toàn bộ vòng lặp thử thách và HUD
+      stopChallengeLoop();
+      cancelCountdown();
+      hideChallengeHUD();
+
+      // 2. Hủy phiên trên server backend để dọn dẹp bộ nhớ và descriptor cũ
+      if (livenessSessionId) {
+        try {
+          const resetForm = new FormData();
+          resetForm.append('session_id', livenessSessionId);
+          fetch(`${API_BASE_URL}/api/v1/liveness/reset-session`, { method: 'POST', body: resetForm }).catch(() => {});
+        } catch (_) {}
+      }
+
+      // 3. Reset các biến trạng thái liveness
+      livenessSessionId = null;
+      baseFrameBlob = null;
+      blinkSuccessBlob = null;
+      headSuccessBlob = null;
+      blinkCounter = 0;
+      blinkState = false;
+      blinkPassed = false;
+      headPassed = false;
+      isBlinkProcessing = false;
+      isHeadProcessing = false;
+      consecutiveGoodFrames = 0;
+      autoTriggerBlocked = false;
+
+      // 4. Cập nhật giao diện thông báo
+      syncEsp32Led('stage1');
+
+      const oval = document.getElementById('faceGuideOval');
+      if (oval) {
+        oval.className = 'face-guide-oval state-warning';
+        oval.classList.remove('stage-turn');
+      }
+      document.getElementById('bokehBlurOverlay')?.classList.remove('stage-turn');
+
+      const pill = document.getElementById('ovalFeedbackPill');
+      if (pill) {
+        pill.className = 'oval-feedback-pill state-warning';
+        pill.style.display = 'flex';
+      }
+      const text = document.getElementById('ovalFeedbackText');
+      if (text) {
+        text.textContent = `⚠️ ${reason.toUpperCase()} - ĐANG THỰC HIỆN LẠI TỪ BƯỚC 1...`;
+      }
+
+      const cancelBtn = document.getElementById('cancelChallengeBtn');
+      if (cancelBtn) cancelBtn.style.display = 'none';
+
+      const mainBtn = document.getElementById('mainActionBtn');
+      if (mainBtn) mainBtn.disabled = false;
+
+      // 5. Đưa quy trình về Bước 1 (Preview & Oval Check)
+      resetAllSteps();
+      currentState = APP_STATE.PREVIEW_ALIGN;
+      updateMainActionButtonText();
+
+      // 6. Bắt đầu lại vòng lặp kiểm tra tư thế để tự động kích hoạt Bước 1 khi mặt vào oval
+      startPoseCheckLoop();
+    }
+
+    // =========================================================================
     // FAIL-FAST EARLY REJECTION HANDLER (Từ chối ngay lập tức khi sai 1 bước)
     // =========================================================================
     function rejectActiveChallenge({ stageText, reasons, criteria, capturedBlob }) {
@@ -3850,6 +3922,7 @@
       stopChallengeLoop();
       const blinkStartTime = Date.now();
       const maxBlinkTimeoutSec = 10.0;
+      let consecutiveNoFaceFrames = 0;
 
       challengeLoopInterval = setInterval(async () => {
         if (currentState !== APP_STATE.CHALLENGE_BLINK || isBlinkProcessing) return;
@@ -3908,7 +3981,32 @@
           if (res.ok) {
             const data = await res.json();
 
-            // Kiểm tra timeout từ backend -> REJECT NGAY LẬP TỨC
+            // 0. Kiểm tra mất mặt / mặt rời khỏi oval (Áp dụng bộ đệm 3 frame chống giật camera)
+            if (data.has_face === false || data.face_lost) {
+              consecutiveNoFaceFrames++;
+              if (consecutiveNoFaceFrames >= 3) {
+                blinkPassed = false;
+                restartPipelineDueToFaceLoss(data.error || 'Khuôn mặt đã rời khỏi khung oval');
+                return;
+              }
+              const oval = document.getElementById('faceGuideOval');
+              if (oval) oval.className = 'face-guide-oval state-warning';
+              const displayTime = (data.time_left !== undefined) ? data.time_left : localTimeLeft;
+              updateChallengeHUD({
+                stageText: '⚠️ CĂN CHỈNH KHUNG OVAL',
+                icon: '🔍',
+                prompt: 'GIỮ KHUÔN MẶT TRONG KHUNG OVAL',
+                hint: 'Đưa khuôn mặt vào trong khung oval để tiếp tục thử thách',
+                timerText: `${displayTime.toFixed(1)}s`,
+                isTimerUrgent: displayTime < 3.0,
+                telemetry: `Trạng thái: MẶT RỜI OVAL (${consecutiveNoFaceFrames}/3)`
+              });
+              return;
+            } else {
+              consecutiveNoFaceFrames = 0;
+            }
+
+            // 1. Kiểm tra timeout từ backend -> REJECT NGAY LẬP TỨC
             if (data.timed_out) {
               blinkPassed = false;
               rejectActiveChallenge({
@@ -3928,7 +4026,7 @@
               return;
             }
 
-            // Kiểm tra nhiều người trong lúc chớp mắt
+            // 2. Kiểm tra nhiều người trong lúc chớp mắt
             if (data.num_faces !== undefined && data.num_faces > 1) {
               updateChallengeHUD({
                 stageText: 'CẢNH BÁO AN NINH',
@@ -3941,7 +4039,28 @@
               return;
             }
 
-            // Kiểm tra mặt có khớp khung oval không trong lúc chớp mắt
+            // 3. Kiểm tra tráo đổi người (Face Mismatch) hoặc backend yêu cầu khởi động lại
+            if (data.same_person === false || data.should_restart) {
+              if (data.should_restart) {
+                blinkPassed = false;
+                restartPipelineDueToFaceLoss(data.error || 'Phát hiện đổi người (Face Mismatch)');
+                return;
+              }
+              // Nếu mới lệch 1-2 frame: hiển thị cảnh báo
+              const displayTime = (data.time_left !== undefined) ? data.time_left : localTimeLeft;
+              updateChallengeHUD({
+                stageText: '⚠️ CẢNH BÁO AN NINH',
+                icon: '👤',
+                prompt: (data.error || data.label || 'VUI LÒNG NHÌN THẲNG VÀO CAMERA').toUpperCase(),
+                hint: 'Yêu cầu đúng người thực hiện thử thách ban đầu',
+                timerText: `${displayTime.toFixed(1)}s`,
+                isTimerUrgent: displayTime < 3.0,
+                telemetry: 'Đang kiểm tra tính nhất quán danh tính...'
+              });
+              return;
+            }
+
+            // 4. Kiểm tra mặt có khớp khung oval không trong lúc chớp mắt
             if (data.fit_oval === false) {
               const oval = document.getElementById('faceGuideOval');
               if (oval) oval.className = 'face-guide-oval state-warning';
@@ -3954,25 +4073,6 @@
                 timerText: `${displayTime.toFixed(1)}s`,
                 isTimerUrgent: displayTime < 3.0,
                 telemetry: `Trạng thái: ${data.label || 'MẶT CHƯA KHỚP OVAL'}`
-              });
-              return;
-            }
-
-            // Kiểm tra tráo đổi người -> REJECT NGAY LẬP TỨC
-            if (data.same_person === false) {
-              rejectActiveChallenge({
-                stageText: 'CẢNH BÁO AN NINH: TRÁO ĐỔI NGƯỜI',
-                reasons: ['Phát hiện tráo đổi người thực hiện thử thách (Face Identity Mismatch)!'],
-                criteria: {
-                  face_detected: true,
-                  single_face: true,
-                  pose_valid: true,
-                  anti_spoof_real: false,
-                  both_models_detected: false,
-                  blink_passed: false,
-                  head_movement_passed: false,
-                  same_person_verified: false
-                }
               });
               return;
             }
@@ -4037,10 +4137,10 @@
                 percent: '100%',
                 fillWidth: '100%'
               });
-              // Chờ 500ms hiển thị badge thành công rồi chuyển sang Bước 3: Quay Đầu
+              // Chờ 700ms hiển thị badge thành công rồi chuyển sang Bước 3: Quay Đầu
               setTimeout(() => {
                 proceedToHeadMovementChallenge();
-              }, 500);
+              }, 700);
             }
           }
         } catch (e) {
@@ -4067,7 +4167,10 @@
 
       // Gọi server lấy thử thách ngẫu nhiên mới
       try {
-        const res = await fetch(`${API_BASE_URL}/api/v1/liveness/start-head`, {
+        const startUrl = livenessSessionId 
+          ? `${API_BASE_URL}/api/v1/liveness/start-head?session_id=${encodeURIComponent(livenessSessionId)}` 
+          : `${API_BASE_URL}/api/v1/liveness/start-head`;
+        const res = await fetch(startUrl, {
           method: 'POST'
         });
         if (res.ok) {
@@ -4091,21 +4194,27 @@
         stageText: 'BƯỚC 3/3: THỬ THÁCH QUAY ĐẦU',
         icon: dirIcon,
         prompt: headChallengePrompt.toUpperCase(),
-        hint: `Nhích nhẹ đầu theo hướng mũi tên đến khi đạt 100%`,
+        hint: `Nhìn thẳng, sau đó nhích nhẹ đầu theo hướng mũi tên đến khi đạt 100%`,
         timerText: `${headTimeoutSeconds.toFixed(1)}s`,
         isTimerUrgent: false,
-        telemetry: `Mục tiêu: Nhích nhẹ ~3.5°`,
+        telemetry: `Mục tiêu: Nhích nhẹ ~7.5°`,
         percent: '0%',
         fillWidth: '0%'
       });
 
-      startHeadChallengeLoop();
+      // Tạo khoảng đệm 800ms để người dùng đọc kịp hướng và lấy baseline chuẩn khi đang nhìn thẳng
+      setTimeout(() => {
+        if (currentState === APP_STATE.CHALLENGE_HEAD) {
+          startHeadChallengeLoop();
+        }
+      }, 800);
     }
 
     function startHeadChallengeLoop() {
       stopChallengeLoop();
       const headStartTime = Date.now();
       const maxHeadTimeoutSec = headTimeoutSeconds + 2.0;
+      let consecutiveNoFaceFrames = 0;
 
       challengeLoopInterval = setInterval(async () => {
         if (currentState !== APP_STATE.CHALLENGE_HEAD || isHeadProcessing) return;
@@ -4157,8 +4266,37 @@
           if (res.ok) {
             const data = await res.json();
 
-            // Kiểm tra nhiều người hoặc đổi người trong lúc quay đầu
+            // 0. Kiểm tra mất mặt / mặt rời khỏi oval (Áp dụng bộ đệm 3 frame)
+            if (data.has_face === false || data.face_lost) {
+              consecutiveNoFaceFrames++;
+              if (consecutiveNoFaceFrames >= 3) {
+                headPassed = false;
+                restartPipelineDueToFaceLoss(data.error || 'Khuôn mặt đã rời khỏi khung oval');
+                return;
+              }
+              const oval = document.getElementById('faceGuideOval');
+              if (oval) oval.className = 'face-guide-oval state-warning stage-turn';
+              updateChallengeHUD({
+                stageText: '⚠️ CĂN CHỈNH KHUNG OVAL',
+                icon: '🔍',
+                prompt: 'GIỮ KHUÔN MẶT TRONG KHUNG OVAL',
+                hint: 'Đưa khuôn mặt vào trong khung oval để tiếp tục quay đầu',
+                timerText: `${(data.time_left !== undefined ? data.time_left : 0).toFixed(1)}s`,
+                isTimerUrgent: false,
+                telemetry: `Trạng thái: MẶT RỜI OVAL (${consecutiveNoFaceFrames}/3)`
+              });
+              return;
+            } else {
+              consecutiveNoFaceFrames = 0;
+            }
+
+            // 1. Kiểm tra nhiều người trong lúc quay đầu
             if (data.num_faces !== undefined && data.num_faces > 1) {
+              if (data.should_restart) {
+                headPassed = false;
+                restartPipelineDueToFaceLoss(data.error || 'Phát hiện nhiều người trong khung hình');
+                return;
+              }
               updateChallengeHUD({
                 stageText: 'CẢNH BÁO AN NINH',
                 icon: '👥',
@@ -4170,7 +4308,27 @@
               return;
             }
 
-            // Kiểm tra mặt có khớp khung oval không trong lúc quay đầu
+            // 2. Kiểm tra tráo đổi người (Face Mismatch) hoặc backend yêu cầu khởi động lại
+            if (data.same_person === false || data.should_restart) {
+              if (data.should_restart || data.state === 'FAILED') {
+                headPassed = false;
+                restartPipelineDueToFaceLoss(data.error || 'Phát hiện đổi người (Face Mismatch)');
+                return;
+              }
+              // Nếu state === 'WARNING' (mới lệch 1-2 frame): hiển thị cảnh báo
+              updateChallengeHUD({
+                stageText: '⚠️ CẢNH BÁO AN NINH',
+                icon: '👤',
+                prompt: (data.prompt || data.error || 'VUI LÒNG GIỮ KHUÔN MẶT RÕ RÀNG TRONG OVAL').toUpperCase(),
+                hint: 'Yêu cầu đúng người thực hiện thử thách ban đầu',
+                timerText: `${(data.time_left !== undefined ? data.time_left : 0).toFixed(1)}s`,
+                isTimerUrgent: false,
+                telemetry: 'Đang kiểm tra tính nhất quán danh tính...'
+              });
+              return;
+            }
+
+            // 3. Kiểm tra mặt có khớp khung oval không trong lúc quay đầu
             if (data.fit_oval === false && data.is_too_far) {
               const oval = document.getElementById('faceGuideOval');
               if (oval) oval.className = 'face-guide-oval state-warning stage-turn';
@@ -4179,29 +4337,9 @@
                 icon: '🔍',
                 prompt: (data.prompt || data.error || 'VUI LÒNG TIẾN LẠI GẦN CHO KHỚP KHUNG OVAL').toUpperCase(),
                 hint: 'Tiến lại gần camera hơn để mặt vừa vặn khung oval',
-                timerText: `${(data.time_left !== undefined ? data.time_left : localTimeLeft).toFixed(1)}s`,
+                timerText: `${(data.time_left !== undefined ? data.time_left : 0).toFixed(1)}s`,
                 isTimerUrgent: false,
                 telemetry: 'Trạng thái: MẶT Ở QUÁ XA OVAL'
-              });
-              return;
-            }
-
-            // Kiểm tra tráo đổi người -> REJECT NGAY LẬP TỨC
-            if (data.same_person === false) {
-              headPassed = false;
-              rejectActiveChallenge({
-                stageText: 'CẢNH BÁO AN NINH: TRÁO ĐỔI NGƯỜI',
-                reasons: ['Phát hiện tráo đổi người thực hiện thử thách quay đầu (Face Identity Mismatch)!'],
-                criteria: {
-                  face_detected: true,
-                  single_face: true,
-                  pose_valid: true,
-                  anti_spoof_real: false,
-                  both_models_detected: false,
-                  blink_passed: true,
-                  head_movement_passed: false,
-                  same_person_verified: false
-                }
               });
               return;
             }
@@ -4234,7 +4372,8 @@
             const movedAngle = (data.current_angle !== undefined) ? data.current_angle.toFixed(1) : '0.0';
             let telemetry = `Tiến trình: ${pct}%`;
             if (data.pose) {
-              telemetry = `Yaw: ${data.pose.yaw}° | Nhích: ${movedAngle}° / 3.5° | ${telemetry}`;
+              const targetStr = (data.target_threshold !== undefined && data.target_threshold > 0) ? data.target_threshold.toFixed(1) : '7.5';
+              telemetry = `Yaw: ${data.pose.yaw}° | Nhích: ${movedAngle}° / ${targetStr}° | ${telemetry}`;
             }
 
             const activeHint = data.is_matched
@@ -4271,10 +4410,14 @@
 
               setTimeout(() => {
                 finishLivenessAndSubmitVerify();
-              }, 700);
+              }, 800);
             } else if (data.state === 'FAILED') {
-              // Thất bại quay đầu -> REJECT NGAY LẬP TỨC (không chạy full pipeline)
               headPassed = false;
+              if (data.should_restart) {
+                restartPipelineDueToFaceLoss(data.error || 'Thử thách bị gián đoạn');
+                return;
+              }
+              // Thất bại quay đầu -> REJECT NGAY LẬP TỨC (không chạy full pipeline)
               rejectActiveChallenge({
                 stageText: 'THẤT BÀI: QUAY ĐẦU QUÁ HẠN',
                 reasons: ['Không hoàn thành thử thách quay đầu trong thời gian quy định'],

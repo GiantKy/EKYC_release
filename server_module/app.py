@@ -23,7 +23,7 @@ from typing import Optional, Union, Dict, Any, Tuple
 import cv2
 import numpy as np
 import torch
-from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Depends, status, BackgroundTasks
+from fastapi import FastAPI, File, UploadFile, Form, HTTPException, Request, Depends, status, BackgroundTasks, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import HTMLResponse, JSONResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
@@ -298,6 +298,16 @@ async def serve_home_ui():
 
 @app.get("/demo", response_class=HTMLResponse, summary="Đường dẫn thay thế tới Giao diện Web")
 async def serve_demo_ui():
+    return await serve_home_ui()
+
+
+@app.get("/simple", response_class=HTMLResponse, summary="Giao diện eKYC Tinh Gọn (Simple Kiosk Mode)")
+async def serve_simple_ui():
+    """Phục vụ trang Web eKYC giao diện tinh gọn, chỉ giữ khung oval và hướng dẫn thử thách."""
+    simple_html_path = os.path.join(STATIC_DIR, "simple.html")
+    if os.path.exists(simple_html_path):
+        with open(simple_html_path, "r", encoding="utf-8") as f:
+            return HTMLResponse(content=f.read())
     return await serve_home_ui()
 
 
@@ -622,6 +632,7 @@ def _parse_bool_param(val) -> bool:
 async def init_liveness_session_endpoint(
     request: Request,
     file: Optional[UploadFile] = File(None, description="Ảnh chuẩn Bước 1 (Base Frame)"),
+    base_frame: Optional[UploadFile] = File(None, description="Ảnh chuẩn Bước 1 (Base Frame)"),
     session_id: Optional[str] = Form(None, description="Mã phiên tùy chọn")
 ):
     """Khởi tạo phiên Liveness: kiểm tra 1 người duy nhất và trích xuất descriptor để chống tráo đổi người."""
@@ -630,6 +641,8 @@ async def init_liveness_session_endpoint(
     image_input = None
     if file is not None:
         image_input = await file.read()
+    elif base_frame is not None:
+        image_input = await base_frame.read()
     else:
         try:
             body = await request.json()
@@ -754,11 +767,14 @@ async def evaluate_blink_frame_endpoint(
     "/api/v1/liveness/start-head",
     summary="Khởi tạo thử thách quay đầu ngẫu nhiên mới (Head Movement Challenge)"
 )
-async def start_head_challenge_endpoint(request: Request):
+async def start_head_challenge_endpoint(
+    request: Request,
+    session_id: Optional[str] = Query(None, description="Mã phiên liveness đối chiếu sinh trắc học")
+):
     """Bắt đầu thử thách quay đầu ngẫu nhiên: TURN_LEFT hoặc TURN_RIGHT (Chỉ quay trái hoặc quay phải)."""
     pipeline: EKYCPipelineServer = request.app.state.pipeline
     try:
-        res = pipeline.start_head_challenge()
+        res = pipeline.start_head_challenge(session_id=session_id)
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
