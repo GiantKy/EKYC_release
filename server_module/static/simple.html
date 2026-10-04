@@ -725,6 +725,158 @@
         mask-image: radial-gradient(ellipse 125px 165px at center 48%, transparent 95%, black 100%) !important;
         -webkit-mask-image: radial-gradient(ellipse 125px 165px at center 48%, transparent 95%, black 100%) !important;
       }
+      .inframe-side-indicator.side-left {
+        left: 6px;
+      }
+      .inframe-side-indicator.side-right {
+        right: 6px;
+      }
+      .side-bubble {
+        padding: 6px 10px;
+      }
+      .bubble-txt {
+        font-size: 0.75rem;
+      }
+    }
+
+    /* =========================================================================
+       IN-FRAME PURE ARROW DIRECTION GUIDE (STEP 3 - NO TEXT)
+       ========================================================================= */
+    .inframe-arrow-guide {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 25;
+      display: none;
+    }
+
+    .inframe-arrow-pod {
+      position: absolute;
+      top: 50%;
+      transform: translateY(-50%);
+      display: none;
+      align-items: center;
+      gap: 12px;
+      pointer-events: none;
+    }
+
+    .inframe-arrow-pod.left {
+      left: 18px;
+      animation: bounceArrowLeft 1.4s infinite ease-in-out;
+    }
+
+    .inframe-arrow-pod.right {
+      right: 18px;
+      animation: bounceArrowRight 1.4s infinite ease-in-out;
+    }
+
+    @keyframes bounceArrowLeft {
+      0%, 100% { transform: translateY(-50%) translateX(0); }
+      50% { transform: translateY(-50%) translateX(-12px); }
+    }
+
+    @keyframes bounceArrowRight {
+      0%, 100% { transform: translateY(-50%) translateX(0); }
+      50% { transform: translateY(-50%) translateX(12px); }
+    }
+
+    /* Glowing Circular Arrow Badge (No text) */
+    .arrow-circle {
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      background: rgba(8, 14, 28, 0.78);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 3px solid #38bdf8;
+      box-shadow: 0 0 28px rgba(56, 189, 248, 0.75), inset 0 0 16px rgba(56, 189, 248, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #38bdf8;
+      transition: all 0.35s ease;
+      position: relative;
+    }
+
+    .arrow-circle::after {
+      content: '';
+      position: absolute;
+      inset: -7px;
+      border-radius: 50%;
+      border: 2px dashed rgba(56, 189, 248, 0.45);
+      animation: rotateRing 6s linear infinite;
+    }
+
+    @keyframes rotateRing {
+      0% { transform: rotate(0deg); }
+      100% { transform: rotate(360deg); }
+    }
+
+    .arrow-circle.success {
+      border-color: #10b981 !important;
+      color: #10b981 !important;
+      box-shadow: 0 0 32px rgba(16, 185, 129, 0.85), inset 0 0 16px rgba(16, 185, 129, 0.4) !important;
+    }
+
+    .arrow-circle.success::after {
+      border-color: rgba(16, 185, 129, 0.5) !important;
+    }
+
+    .arrow-svg {
+      width: 36px;
+      height: 36px;
+      filter: drop-shadow(0 0 8px currentColor);
+      animation: pulseSvg 1.2s infinite ease-in-out alternate;
+    }
+
+    @keyframes pulseSvg {
+      0% { transform: scale(0.95); opacity: 0.85; }
+      100% { transform: scale(1.1); opacity: 1; }
+    }
+
+    /* Trailing Chevrons Flow */
+    .arrow-chevrons {
+      display: flex;
+      gap: 3px;
+      font-size: 2.2rem;
+      font-weight: 900;
+      line-height: 1;
+      color: #38bdf8;
+      text-shadow: 0 0 16px rgba(56, 189, 248, 0.95);
+      user-select: none;
+    }
+
+    .left-flow .c1 { animation: streamLeft 1s infinite 0.4s; }
+    .left-flow .c2 { animation: streamLeft 1s infinite 0.2s; }
+    .left-flow .c3 { animation: streamLeft 1s infinite 0s; }
+
+    .right-flow .c1 { animation: streamRight 1s infinite 0s; }
+    .right-flow .c2 { animation: streamRight 1s infinite 0.2s; }
+    .right-flow .c3 { animation: streamRight 1s infinite 0.4s; }
+
+    @keyframes streamLeft {
+      0% { transform: translateX(0); opacity: 0.2; }
+      50% { opacity: 1; transform: translateX(-6px); }
+      100% { transform: translateX(-16px); opacity: 0; }
+    }
+
+    @keyframes streamRight {
+      0% { transform: translateX(0); opacity: 0.2; }
+      50% { opacity: 1; transform: translateX(6px); }
+      100% { transform: translateX(16px); opacity: 0; }
+    }
+
+    /* Challenge-tag synchronized completion classes */
+    .challenge-tag.stage-success {
+      background: rgba(16, 185, 129, 0.2) !important;
+      border-color: rgba(16, 185, 129, 0.5) !important;
+      color: #34d399 !important;
+    }
+
+    .challenge-tag.stage-fail {
+      background: rgba(239, 68, 68, 0.2) !important;
+      border-color: rgba(239, 68, 68, 0.5) !important;
+      color: #f87171 !important;
     }
   </style>
 </head>
@@ -779,6 +931,39 @@
       <div class="oval-wrapper">
         <div class="face-oval" id="faceOval">
           <div class="radar-beam"></div>
+        </div>
+      </div>
+
+      <!-- In-Frame Pure Arrow Direction Guide (Step 3) - No Text -->
+      <div class="inframe-arrow-guide" id="inframeArrowGuide">
+        <!-- Left Turn Arrow Indicator -->
+        <div class="inframe-arrow-pod left" id="inframeArrowLeft">
+          <div class="arrow-chevrons left-flow">
+            <span class="chev c1">‹</span>
+            <span class="chev c2">‹</span>
+            <span class="chev c3">‹</span>
+          </div>
+          <div class="arrow-circle">
+            <svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+          </div>
+        </div>
+
+        <!-- Right Turn Arrow Indicator -->
+        <div class="inframe-arrow-pod right" id="inframeArrowRight">
+          <div class="arrow-circle">
+            <svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </div>
+          <div class="arrow-chevrons right-flow">
+            <span class="chev c1">›</span>
+            <span class="chev c2">›</span>
+            <span class="chev c3">›</span>
+          </div>
         </div>
       </div>
 
@@ -1344,12 +1529,63 @@
       document.getElementById('challengeProgress').style.width = '0%';
       document.getElementById('challengeTimer').textContent = `${headTimeoutSeconds.toFixed(1)}s`;
 
+      // KÍCH HOẠT HƯỚNG DẪN MŨI TÊN TRONG KHUNG HÌNH (IN-FRAME ARROW GUIDE - CHỈ ICON MŨI TÊN, KHÔNG CÓ CHỮ)
+      const arrowGuide = document.getElementById('inframeArrowGuide');
+      const arrowLeft = document.getElementById('inframeArrowLeft');
+      const arrowRight = document.getElementById('inframeArrowRight');
+
+      if (arrowGuide) arrowGuide.style.display = 'block';
+
+      const isLeft = headChallengeAction.includes('left');
+      const isRight = headChallengeAction.includes('right');
+
+      if (isLeft) {
+        if (arrowLeft) {
+          arrowLeft.style.display = 'flex';
+          resetArrowCircle(arrowLeft, 'left');
+        }
+        if (arrowRight) arrowRight.style.display = 'none';
+      } else if (isRight) {
+        if (arrowRight) {
+          arrowRight.style.display = 'flex';
+          resetArrowCircle(arrowRight, 'right');
+        }
+        if (arrowLeft) arrowLeft.style.display = 'none';
+      } else {
+        if (arrowLeft) arrowLeft.style.display = 'none';
+        if (arrowRight) arrowRight.style.display = 'none';
+      }
+
       // Tạo khoảng đệm 800ms để người dùng đọc kịp hướng và lấy baseline chuẩn khi đang nhìn thẳng
       setTimeout(() => {
         if (currentState === APP_STATE.CHALLENGE_HEAD) {
           startHeadLoop();
         }
       }, 800);
+    }
+
+    function resetArrowCircle(podElem, dir) {
+      const circle = podElem.querySelector('.arrow-circle');
+      if (circle) {
+        circle.className = 'arrow-circle';
+        if (dir === 'left') {
+          circle.innerHTML = '<svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>';
+        } else {
+          circle.innerHTML = '<svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+        }
+      }
+      const chevs = podElem.querySelector('.arrow-chevrons');
+      if (chevs) chevs.style.display = 'flex';
+    }
+
+    function setArrowSuccess(podElem) {
+      const circle = podElem.querySelector('.arrow-circle');
+      if (circle) {
+        circle.className = 'arrow-circle success';
+        circle.innerHTML = '<svg class="arrow-svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>';
+      }
+      const chevs = podElem.querySelector('.arrow-chevrons');
+      if (chevs) chevs.style.display = 'none';
     }
 
     function startHeadLoop() {
@@ -1433,6 +1669,11 @@
               document.getElementById('challengeTitle').textContent = 'HOÀN THÀNH QUAY ĐẦU THÀNH CÔNG!';
               document.getElementById('challengeHint').textContent = 'Đang tiến hành thẩm định sinh trắc học cuối cùng...';
 
+              // Đổi icon mũi tên trong khung hình sang icon checkmark xanh lá (không có chữ)
+              const isLeft = headChallengeAction.includes('left');
+              const activePod = isLeft ? document.getElementById('inframeArrowLeft') : document.getElementById('inframeArrowRight');
+              if (activePod) setArrowSuccess(activePod);
+
               setTimeout(() => {
                 submitFinalVerification();
               }, 800);
@@ -1453,6 +1694,10 @@
       }
       isBlinkProcessing = false;
       isHeadProcessing = false;
+      if (currentState !== APP_STATE.CHALLENGE_HEAD) {
+        const arrowGuide = document.getElementById('inframeArrowGuide');
+        if (arrowGuide) arrowGuide.style.display = 'none';
+      }
     }
 
     // =========================================================================
@@ -1461,10 +1706,19 @@
     async function submitFinalVerification() {
       currentState = APP_STATE.FINAL_VERIFYING;
 
-      document.getElementById('challengeStageLabel').textContent = 'ĐANG XÁC THỰC SINH TRẮC HỌC...';
+      // Ẩn hướng dẫn mũi tên trong khung hình khi bắt đầu thẩm định
+      const arrowGuide = document.getElementById('inframeArrowGuide');
+      if (arrowGuide) arrowGuide.style.display = 'none';
+
+      const cStageTag = document.getElementById('challengeStageTag');
+      if (cStageTag) {
+        cStageTag.className = 'challenge-tag';
+        cStageTag.innerHTML = '<span class="spinner" style="width: 12px; height: 12px; border-width: 2px;"></span><span id="challengeStageLabel">ĐANG XÁC THỰC SINH TRẮC HỌC...</span>';
+      }
       document.getElementById('challengeIcon').innerHTML = '<span class="spinner" style="width: 24px; height: 24px;"></span>';
       document.getElementById('challengeTitle').textContent = 'ĐANG THẨM ĐỊNH AI DUAL-MODEL...';
-      document.getElementById('challengeHint').textContent = 'Vui lòng giữ nguyên màn hình trong giây lát';
+      document.getElementById('challengeTitle').style.color = '';
+      document.getElementById('challengeHint').textContent = 'Vui lòng giữ nguyên khuôn mặt trong giây lát';
 
       try {
         const formData = new FormData();
@@ -1485,8 +1739,12 @@
 
         if (res.ok) {
           const data = await res.json();
-          const approved = data.final_decision && data.final_decision.approved;
-          const reasons = (data.final_decision && data.final_decision.reasons) || [];
+          console.log('[Verify Result]', data);
+          const approved = (data.approved !== undefined)
+            ? Boolean(data.approved)
+            : (data.final_decision ? Boolean(data.final_decision.approved) : (data.verdict === 'APPROVED'));
+
+          const reasons = data.reasons || (data.final_decision && data.final_decision.reasons) || [];
 
           if (approved) {
             showFinalResult(true, 'Khuôn mặt và thực thể sống sinh trắc học của bạn đã được xác minh đạt chuẩn an toàn 100%.');
@@ -1508,6 +1766,11 @@
       stopChallengeLoop();
       stopPoseCheckLoop();
 
+      // Ẩn hướng dẫn mũi tên quay đầu trong khung hình
+      const arrowGuide = document.getElementById('inframeArrowGuide');
+      if (arrowGuide) arrowGuide.style.display = 'none';
+
+      // 1. Cập nhật Overlay lớn trên khung hình Viewport
       const overlay = document.getElementById('resultOverlay');
       const badge = document.getElementById('resultBadge');
       const title = document.getElementById('resultTitle');
@@ -1531,6 +1794,66 @@
       }
 
       overlay.style.display = 'flex';
+
+      // 2. ĐỒNG BỘ TOÀN DIỆN Ô TRẠNG THÁI / NÚT DƯỚI (CHALLENGE BOX)
+      // Loại bỏ hoàn toàn hiệu ứng xoay loading và hiển thị kết quả đồng nhất
+      const cStageTag = document.getElementById('challengeStageTag');
+      const cIcon = document.getElementById('challengeIcon');
+      const cTitle = document.getElementById('challengeTitle');
+      const cHint = document.getElementById('challengeHint');
+      const cTimer = document.getElementById('challengeTimer');
+      const cProgress = document.getElementById('challengeProgress');
+
+      if (isSuccess) {
+        if (cStageTag) {
+          cStageTag.className = 'challenge-tag stage-success';
+          cStageTag.innerHTML = '<span>HOÀN THÀNH XÁC THỰC</span>';
+        }
+        if (cIcon) cIcon.textContent = '✅';
+        if (cTitle) {
+          cTitle.textContent = 'XÁC THỰC THÀNH CÔNG';
+          cTitle.style.color = '#34d399';
+        }
+        if (cHint) cHint.textContent = descText || 'Khuôn mặt và thực thể sống sinh trắc học đã được xác minh đạt chuẩn an toàn 100%.';
+        if (cTimer) {
+          cTimer.textContent = '100%';
+          cTimer.classList.remove('urgent');
+        }
+        if (cProgress) {
+          cProgress.style.width = '100%';
+          cProgress.style.background = 'linear-gradient(90deg, #10b981, #34d399)';
+        }
+
+        // Đánh dấu cả 3 bước trên thanh Stepper là hoàn thành
+        for (let i = 1; i <= 3; i++) {
+          const node = document.getElementById(`stepNode${i}`);
+          const num = document.getElementById(`stepNum${i}`);
+          if (node) {
+            node.classList.remove('active');
+            node.classList.add('completed');
+          }
+          if (num) num.textContent = '✓';
+        }
+      } else {
+        if (cStageTag) {
+          cStageTag.className = 'challenge-tag stage-fail';
+          cStageTag.innerHTML = '<span>KẾT QUẢ THẨM ĐỊNH</span>';
+        }
+        if (cIcon) cIcon.textContent = '❌';
+        if (cTitle) {
+          cTitle.textContent = 'XÁC THỰC THẤT BẠI';
+          cTitle.style.color = '#f87171';
+        }
+        if (cHint) cHint.textContent = descText || 'Không đạt tiêu chí xác thực sinh trắc học.';
+        if (cTimer) {
+          cTimer.textContent = '0%';
+          cTimer.classList.remove('urgent');
+        }
+        if (cProgress) {
+          cProgress.style.width = '100%';
+          cProgress.style.background = 'linear-gradient(90deg, #ef4444, #f87171)';
+        }
+      }
     }
 
     // =========================================================================
@@ -1576,9 +1899,26 @@
       isBlinkProcessing = false;
       isHeadProcessing = false;
 
-      // Ẩn các modal
+      // Ẩn hướng dẫn mũi tên quay đầu trong khung hình
+      const arrowGuide = document.getElementById('inframeArrowGuide');
+      if (arrowGuide) arrowGuide.style.display = 'none';
+
+      // Ẩn các modal & reset Challenge Box
       document.getElementById('resultOverlay').style.display = 'none';
       document.getElementById('challengeBox').style.display = 'none';
+
+      const cStageTag = document.getElementById('challengeStageTag');
+      if (cStageTag) {
+        cStageTag.className = 'challenge-tag';
+        cStageTag.innerHTML = '<span class="spinner" style="width: 12px; height: 12px; border-width: 2px;"></span><span id="challengeStageLabel">BƯỚC 2/3: THỬ THÁCH CHỚP MẮT</span>';
+      }
+      const cTitle = document.getElementById('challengeTitle');
+      if (cTitle) cTitle.style.color = '';
+      const cProgress = document.getElementById('challengeProgress');
+      if (cProgress) {
+        cProgress.style.width = '0%';
+        cProgress.style.background = '';
+      }
 
       // Hiện lại Step 1 UI
       document.getElementById('instructionPill').style.display = 'flex';

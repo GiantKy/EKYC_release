@@ -154,6 +154,7 @@ class VerifyResponse(BaseModel):
     is_real: bool = Field(..., description="Người thật (True) hay Giả mạo (False)")
     confidence: float = Field(..., description="Độ tin cậy chống giả mạo (0.0 - 1.0)")
     reasons: List[str] = Field(default_factory=list, description="Lý do từ chối (nếu rejected)")
+    final_decision: Optional[FinalDecision] = Field(default=None, description="Khối quyết định tổng kết")
     criteria: CriteriaDetail = Field(..., description="Chi tiết 8 tiêu chuẩn đánh giá eKYC")
     face_detection: FaceDetectionDetail = Field(..., description="Dữ liệu phát hiện khuôn mặt")
     pose_3d: Pose3DDetail = Field(..., description="Dữ liệu tư thế 3D")

@@ -70,6 +70,7 @@ try:
     from server_module.schemas import (
         VerifyJsonRequest,
         VerifyResponse,
+        FinalDecision,
         PoseValidateJsonRequest,
         PoseValidateResponse,
         AntiSpoofJsonRequest,
@@ -93,6 +94,7 @@ except ImportError:
     from schemas import (
         VerifyJsonRequest,
         VerifyResponse,
+        FinalDecision,
         PoseValidateJsonRequest,
         PoseValidateResponse,
         AntiSpoofJsonRequest,
@@ -465,6 +467,11 @@ async def verify_face(
         is_real=ens_info["is_real"],
         confidence=ens_info["confidence"],
         reasons=final_dec.get("reasons", []),
+        final_decision=FinalDecision(
+            approved=final_dec["approved"],
+            verdict=final_dec["verdict"],
+            reasons=final_dec.get("reasons", [])
+        ),
         criteria=report["criteria"],
         face_detection=report["face_detection"],
         pose_3d=report["pose_3d"],
