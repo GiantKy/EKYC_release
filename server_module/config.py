@@ -84,6 +84,9 @@ CHALLENGE_TIMEOUT_SECONDS = 10.0
 # =====================================================================
 # Chính sách A (Strict Policy): Bắt buộc tháo TOÀN BỘ mọi loại kính (kính cận, kính râm) và khẩu trang.
 STRICT_GLASSES_POLICY = True        # True: Cấm toàn bộ kính (kính cận trong suốt, kính thuốc, kính râm)
+OCCLUSION_CONF_GLASS = 0.32         # Ngưỡng AI nhạy bén phát hiện kính (kính cận trong suốt, gọng mảnh, kính râm)
+OCCLUSION_CONF_MASK = 0.32          # Ngưỡng AI nhạy bén phát hiện khẩu trang (y tế, vải, che cằm)
+OCCLUSION_INPUT_SIZE = 640          # Độ phân giải ảnh gốc đưa vào AI (giữ nguyên độ nét gọng kính)
 CHECK_CLEAR_GLASSES = True          # Bật thuật toán dò gọng kính cận trong suốt (Nose bridge edge & rims)
 CHECK_GLASSES_GLARE = True          # Bật thuật toán dò lóa sáng tròng kính
 SUNGLASSES_RATIO_THRESH = 0.58      # Tỷ lệ độ sáng hốc mắt / trán (< 0.58 coi là kính râm/kính màu)

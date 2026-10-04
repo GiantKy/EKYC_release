@@ -1,12 +1,9 @@
 {
   "name": "ekyc-server-receiver",
   "version": "1.0.0",
-  "description": "eKYC Node.js Stream Ingest and Control Receiver",
+  "description": "eKYC Node.js Stream Ingest and Control Receiver (Pure Node.js Standard Library, 0 npm dependencies)",
   "main": "nodejs_server_receiver.js",
   "scripts": {
     "start": "node nodejs_server_receiver.js"
-  },
-  "dependencies": {
-    "sharp": "^0.35.5"
   }
 }

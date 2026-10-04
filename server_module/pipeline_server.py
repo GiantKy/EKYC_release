@@ -357,6 +357,7 @@ class EKYCPipelineServer:
             frame=frame,
             landmarks=landmarks,
             num_faces=num_faces,
+            force_fresh=True,
             oval_center=oval_center,
             oval_axes=oval_axes,
             filter_oval=True
@@ -1575,7 +1576,8 @@ class EKYCPipelineServer:
             frame=frame,
             landmarks=landmarks,
             num_faces=num_faces,
-            pose_dict=pose_dict
+            pose_dict=pose_dict,
+            force_fresh=True
         )
         c_occlusion_free = not is_occluded_final
 

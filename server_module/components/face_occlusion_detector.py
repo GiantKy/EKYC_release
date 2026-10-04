@@ -13,12 +13,25 @@ import cv2
 import os
 
 try:
-    from server_module.config import STRICT_GLASSES_POLICY
+    from server_module.config import (
+        STRICT_GLASSES_POLICY,
+        OCCLUSION_CONF_GLASS,
+        OCCLUSION_CONF_MASK,
+        OCCLUSION_INPUT_SIZE,
+    )
 except ImportError:
     try:
-        from config import STRICT_GLASSES_POLICY
+        from config import (
+            STRICT_GLASSES_POLICY,
+            OCCLUSION_CONF_GLASS,
+            OCCLUSION_CONF_MASK,
+            OCCLUSION_INPUT_SIZE,
+        )
     except ImportError:
         STRICT_GLASSES_POLICY = True
+        OCCLUSION_CONF_GLASS = 0.32
+        OCCLUSION_CONF_MASK = 0.32
+        OCCLUSION_INPUT_SIZE = 640
 
 
 class FaceOcclusionDetector:
@@ -32,15 +45,21 @@ class FaceOcclusionDetector:
         self,
         model_id: str = "glass-and-mask-q5de1/2",
         api_key: Optional[str] = None,
-        conf_threshold: float = 0.55,
+        conf_threshold: float = OCCLUSION_CONF_GLASS,
+        conf_threshold_glass: float = OCCLUSION_CONF_GLASS,
+        conf_threshold_mask: float = OCCLUSION_CONF_MASK,
         strict_glasses: bool = STRICT_GLASSES_POLICY,
-        onnx_path: Optional[str] = None
+        onnx_path: Optional[str] = None,
+        input_size: int = OCCLUSION_INPUT_SIZE
     ):
         self.model_id = model_id
         self.api_key = api_key if api_key is not None else os.environ.get("ROBOFLOW_API_KEY", "")
         self.conf_threshold = conf_threshold
+        self.conf_threshold_glass = conf_threshold_glass
+        self.conf_threshold_mask = conf_threshold_mask
         self.strict_glasses = strict_glasses
         self.onnx_path = onnx_path
+        self.input_size = input_size
         self.ai_model = None
         self._last_check_time = 0.0
         self._cached_result = (False, "OK", "")
@@ -131,17 +150,19 @@ class FaceOcclusionDetector:
         # ---------------------------------------------------------------------
         if self.ai_model is not None:
             try:
-                # Tối ưu kích thước ảnh đầu vào để giảm thiểu độ trễ tối đa
+                # Tối ưu kích thước ảnh đầu vào: Giữ trọn độ phân giải 640 để nhận diện gọng kính mỏng
                 h, w = frame.shape[:2]
                 max_dim = max(h, w)
                 scale = 1.0
-                if max_dim > 416:
-                    scale = 416.0 / max_dim
+                target_size = getattr(self, "input_size", 640)
+                if max_dim > target_size:
+                    scale = float(target_size) / float(max_dim)
                     infer_frame = cv2.resize(frame, (int(w * scale), int(h * scale)), interpolation=cv2.INTER_LINEAR)
                 else:
                     infer_frame = frame
 
-                preds = self.ai_model.infer(infer_frame)
+                # Chạy suy luận trực tiếp với ngưỡng cơ sở 0.20 để không bỏ sót dấu vết kính / khẩu trang
+                preds = self.ai_model.infer(infer_frame, conf_threshold=0.20)
                 pred_list = []
                 if isinstance(preds, list) and len(preds) > 0:
                     pred_list = getattr(preds[0], "predictions", [])
@@ -154,7 +175,7 @@ class FaceOcclusionDetector:
                     if filter_oval and oval_center is not None and oval_axes is not None:
                         cx, cy = oval_center
                         ax, ay = oval_axes
-                        scale_factor = scale if (max_dim > 416 and scale > 0) else 1.0
+                        scale_factor = scale if (max_dim > target_size and scale > 0) else 1.0
                         px = float(getattr(p, "x", 0.0)) / scale_factor
                         py = float(getattr(p, "y", 0.0)) / scale_factor
                         if ax > 0 and ay > 0 and (px > 0 or py > 0):
@@ -174,27 +195,42 @@ class FaceOcclusionDetector:
                 max_mask = max(mask_confs, default=0.0)
                 max_no_mask = max(no_mask_confs, default=0.0)
 
-                # Logic phân định Kính mắt:
-                # Nếu model phát hiện no_glass mạnh (>= 0.50) hoặc no_glass >= glass -> Chắc chắn KHÔNG ĐEO KÍNH
-                if max_no_glass >= 0.50 or max_no_glass >= max_glass:
-                    has_glass = False
-                else:
-                    has_glass = (max_glass >= self.conf_threshold and max_glass > max_no_glass + 0.08)
+                # =============================================================
+                # LOGIC PHÂN ĐỊNH NGHIÊM NGẶT (STRICT POLICY A - CHỐNG CHE MẶT)
+                # =============================================================
+                thresh_g = getattr(self, "conf_threshold_glass", 0.32)
+                thresh_m = getattr(self, "conf_threshold_mask", 0.32)
 
-                # Logic phân định Khẩu trang:
-                if max_no_mask >= 0.50 or max_no_mask >= max_mask:
-                    has_mask = False
-                else:
-                    has_mask = (max_mask >= self.conf_threshold and max_mask > max_no_mask + 0.08)
+                # 1. Logic phân định Kính mắt (Glass):
+                has_glass = False
+                if max_glass >= 0.35:
+                    has_glass = True
+                elif max_glass >= thresh_g and max_no_glass < 0.78:
+                    has_glass = True
+                elif max_glass >= 0.28 and max_no_glass < 0.70:
+                    has_glass = True
+                elif len([c for c in glass_confs if c >= 0.24]) >= 2:
+                    has_glass = True
+
+                # 2. Logic phân định Khẩu trang (Mask):
+                has_mask = False
+                if max_mask >= 0.35:
+                    has_mask = True
+                elif max_mask >= thresh_m and max_no_mask < 0.78:
+                    has_mask = True
+                elif max_mask >= 0.28 and max_no_mask < 0.70:
+                    has_mask = True
+                elif len([c for c in mask_confs if c >= 0.24]) >= 2:
+                    has_mask = True
 
                 self._last_check_time = now
 
                 if has_glass and has_mask:
-                    res = (True, "GLASS_AND_MASK_DETECTED", "CẢNH BÁO: Phát hiện đang đeo kính mắt và khẩu trang!")
+                    res = (True, "GLASS_AND_MASK_DETECTED", "CẢNH BÁO: Phát hiện đang đeo kính mắt và khẩu trang! Vui lòng tháo ra để tiếp tục.")
                 elif has_glass:
-                    res = (True, "GLASS_DETECTED", "CẢNH BÁO: Phát hiện đang đeo kính mắt!")
+                    res = (True, "GLASS_DETECTED", "CẢNH BÁO: Phát hiện đang đeo kính mắt! Vui lòng tháo kính ra để tiếp tục.")
                 elif has_mask:
-                    res = (True, "MASK_DETECTED", "CẢNH BÁO: Phát hiện đang đeo khẩu trang!")
+                    res = (True, "MASK_DETECTED", "CẢNH BÁO: Phát hiện đang đeo khẩu trang! Vui lòng tháo khẩu trang ra để tiếp tục.")
                 else:
                     # Nếu AI xác nhận không kính và không khẩu trang
                     res = (False, "OK", "")

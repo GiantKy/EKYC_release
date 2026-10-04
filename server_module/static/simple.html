@@ -1220,8 +1220,19 @@
       if (data.is_occluded) {
         oval.className = 'face-oval state-warning';
         pill.className = 'instruction-pill state-warning';
-        pillIcon.textContent = '👓';
-        pillText.textContent = (data.message || 'VUI LÒNG THÁO KÍNH HOẶC KHẨU TRANG RA').toUpperCase();
+        if (data.occlusion_reason === 'GLASS_DETECTED') {
+          pillIcon.textContent = '👓';
+          pillText.textContent = (data.message || 'CẢNH BÁO: VUI LÒNG THÁO KÍNH MẮT RA').toUpperCase();
+        } else if (data.occlusion_reason === 'MASK_DETECTED') {
+          pillIcon.textContent = '😷';
+          pillText.textContent = (data.message || 'CẢNH BÁO: VUI LÒNG THÁO KHẨU TRANG RA').toUpperCase();
+        } else if (data.occlusion_reason === 'GLASS_AND_MASK_DETECTED') {
+          pillIcon.textContent = '🥽';
+          pillText.textContent = (data.message || 'CẢNH BÁO: VUI LÒNG THÁO KÍNH VÀ KHẨU TRANG').toUpperCase();
+        } else {
+          pillIcon.textContent = '👓';
+          pillText.textContent = (data.message || 'VUI LÒNG THÁO KÍNH HOẶC KHẨU TRANG RA').toUpperCase();
+        }
         resetCountdown();
         return;
       }
