@@ -89,7 +89,17 @@ class HeadPoseEstimator:
 
             pitch = float(np.degrees(x))
             yaw = float(np.degrees(y))
-            roll = float(np.degrees(z))
+
+            # Tính Roll chuẩn xác từ vector nối 2 mắt (le: 33, re: 263) thay vì ma trận solvePnP:
+            # 1. Khắc phục lỗi ngược dấu: Nghiêng vai phải > 0, Nghiêng vai trái < 0
+            # 2. Triệt tiêu hoàn toàn hiện tượng nhiễu Cross-talk (không bị nhảy Roll khi quay mặt Yaw hay ngước Pitch)
+            dx = float(re[0] - le[0])
+            dy = float(re[1] - le[1])
+            if abs(dx) > 1e-5:
+                # dy < 0 khi mắt trái người dùng (bên phải ảnh) nâng lên và mắt phải hạ xuống (nghiêng vai phải)
+                roll = float(-np.degrees(np.arctan2(dy, dx)))
+            else:
+                roll = float(-np.degrees(z))
 
             # Quy ước dấu chuẩn ngân hàng & eKYC Challenge:
             # - Yaw > 0: Quay mặt sang phải người dùng (Turn Right)
