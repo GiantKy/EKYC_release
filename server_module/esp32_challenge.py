@@ -609,7 +609,12 @@ class ESP32ChallengeManager:
             cv2.putText(annotated, f"GOC: Y:{base_yaw:+.0f} P:{base_pitch:+.0f}", (bx1, max(18, by1 - 6)),
                         cv2.FONT_HERSHEY_SIMPLEX, 0.45, (0, 200, 255), 1, cv2.LINE_AA)
             captured_b64 = image_to_base64(annotated, quality=75)
-            hint_dir = "đầu đang lệch trái" if base_yaw < 0 else "đầu đang lệch phải"
+            if abs(base_pitch) > POSE_MAX_PITCH and abs(base_yaw) <= POSE_MAX_YAW:
+                hint_dir = "vui lòng nhìn thẳng ngang tầm mắt" + (" (hạ cằm xuống)" if base_pitch > 0 else " (nâng cằm lên)")
+            elif abs(base_yaw) > POSE_MAX_YAW and abs(base_pitch) <= POSE_MAX_PITCH:
+                hint_dir = "đầu đang lệch trái" if base_yaw < 0 else "đầu đang lệch phải"
+            else:
+                hint_dir = "vui lòng nhìn thẳng vào giữa camera"
             return {
                 "success": False,
                 "step": "face_detect",
@@ -728,6 +733,8 @@ class ESP32ChallengeManager:
                 "confidence": round(confidence, 4),
                 "message": f"CẢNH BÁO: {reasons[0]}. Từ chối xác thực.",
                 "reasons": reasons,
+                "is_spoof_failure": True,
+                "can_retry": True,
                 "captured_image_base64": captured_b64,
                 "dual_window_image_base64": dual_b64,
                 "crop_face_base64": crop_b64,

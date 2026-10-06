@@ -1085,6 +1085,7 @@
     let headChallengePrompt = 'Nhích nhẹ đầu sang TRÁI';
     let headTimeoutSeconds = 10.0;
     let isHeadProcessing = false;
+    let autoRetryTimer = null;
 
     // =========================================================================
     // INITIALIZATION & WEBCAM
@@ -1760,8 +1761,12 @@
           if (approved) {
             showFinalResult(true, 'Khuôn mặt và thực thể sống sinh trắc học của bạn đã được xác minh đạt chuẩn an toàn 100%.');
           } else {
+            const isAntiSpoof = Boolean(data.is_spoof_failure) ||
+              (data.criteria && (!data.criteria.anti_spoof_real || !data.criteria.both_models_detected)) ||
+              reasons.some(r => /spoof|giả mạo|đồng thuận|anti-spoof/i.test(r));
+
             const reasonText = reasons.length > 0 ? reasons.join('; ') : 'Không đạt tiêu chí xác thực sinh trắc học.';
-            showFinalResult(false, reasonText);
+            showFinalResult(false, reasonText, isAntiSpoof);
           }
           return;
         }
@@ -1769,13 +1774,18 @@
         console.warn('Verify submit error:', e);
       }
 
-      showFinalResult(false, 'Đã xảy ra lỗi trong quá trình thẩm định. Vui lòng thử lại.');
+      showFinalResult(false, 'Đã xảy ra lỗi trong quá trình thẩm định. Vui lòng thử lại.', false);
     }
 
-    function showFinalResult(isSuccess, descText) {
+    function showFinalResult(isSuccess, descText, isAntiSpoof = false) {
       currentState = APP_STATE.FINISHED;
       stopChallengeLoop();
       stopPoseCheckLoop();
+
+      if (autoRetryTimer) {
+        clearInterval(autoRetryTimer);
+        autoRetryTimer = null;
+      }
 
       // Ẩn hướng dẫn mũi tên quay đầu trong khung hình
       const arrowGuide = document.getElementById('inframeArrowGuide');
@@ -1799,9 +1809,28 @@
         badge.className = 'result-badge fail';
         badge.textContent = '✕';
         title.className = 'result-title fail';
-        title.textContent = 'Xác Thực Thất Bại';
-        desc.textContent = descText;
-        btn.textContent = 'Thử Lại Từ Đầu';
+        title.textContent = isAntiSpoof ? 'Chưa Đạt Anti-Spoof' : 'Xác Thực Thất Bại';
+
+        let countdownSec = isAntiSpoof ? 2 : 3;
+        btn.textContent = `Làm Lại Ngay (${countdownSec}s)`;
+
+        desc.innerHTML = `${descText}<br><span style="display:inline-block; margin-top:8px; color:#fbbf24; font-size:12px; font-weight:600;">⚡ Đang tự động làm lại từ Bước 1 sau ${countdownSec} giây...</span>`;
+
+        showToastAlert(isAntiSpoof
+          ? `⚠️ LỖI ANTI-SPOOF: Tự động làm lại sau ${countdownSec} giây...`
+          : `⚠️ KHÔNG ĐẠT TIÊU CHUẨN: Tự động làm lại sau ${countdownSec} giây...`
+        );
+
+        autoRetryTimer = setInterval(() => {
+          countdownSec--;
+          if (countdownSec > 0) {
+            btn.textContent = `Làm Lại Ngay (${countdownSec}s)`;
+          } else {
+            clearInterval(autoRetryTimer);
+            autoRetryTimer = null;
+            restartEntireProcess();
+          }
+        }, 1000);
       }
 
       overlay.style.display = 'flex';
@@ -1897,6 +1926,11 @@
     }
 
     function restartEntireProcess() {
+      if (autoRetryTimer) {
+        clearInterval(autoRetryTimer);
+        autoRetryTimer = null;
+      }
+
       stopChallengeLoop();
       stopPoseCheckLoop();
       resetCountdown();

@@ -1,257 +1,207 @@
-# 🛡️ E-KYC Server Module (YOLO Engine)
+# 🛡️ E-KYC Server Module (AI Ensemble & REST API Hub)
 
-Module máy chủ chuyên trách tính toán Computer Vision và Trí tuệ nhân tạo (AI) cho hệ thống xác thực sinh trắc học khuôn mặt eKYC, được xây dựng và chuẩn hóa trực tiếp từ quy trình **`tests/test_pipeline_full.py`**.
+Module máy chủ chuyên trách tính toán Thị giác máy tính (Computer Vision) và Trí tuệ nhân tạo (AI Deep Learning) cho hệ thống xác thực sinh trắc học khuôn mặt eKYC, tích hợp cụm **Dual-Model Ensemble Anti-Spoofing (YOLO_4 + RF-DETR Small Transformer)** và **YOLO26n Occlusion Defense**.
 
-Module này được thiết kế theo dạng **gói độc lập (Self-contained Package)**, sẵn sàng để đóng gói và **upload thẳng lên server** để tích hợp vào hệ thống backend hiện tại (hỗ trợ cả Python Server lẫn Server Node.js).
-
-> [!IMPORTANT]
-> **TÀI LIỆU KIẾN TRÚC PIPELINE 3 BƯỚC MỚI NHẤT**:
-> Xem chi tiết tại: [**`PIPELINE_ARCHITECTURE.md`**](PIPELINE_ARCHITECTURE.md) — Quy chuẩn luồng 3 bước: 1. Snapshot AI (Fail-Fast Ensemble) -> 2. Live Stream Eye Blink -> 3. Live Stream Head Movement -> Mở cửa Relay & Webhook Node.js.
+Module này được thiết kế theo dạng **gói độc lập (Self-contained Package)**, sẵn sàng để triển khai trực tiếp lên server hoặc container Docker, hỗ trợ kết nối đa nền tảng (Web App, Mobile App, Node.js Backend, vi điều khiển ESP32-CAM).
 
 ---
 
 ## 📑 Mục Lục
 1. [Kiến Trúc & Quy Trình Xử Lý AI](#1-kiến-trúc--quy-trình-xử-lý-ai)
-2. [Danh Sách Mô Hình AI (YOLO Weights)](#2-danh-sách-mô-hình-ai-yolo-weights)
+2. [Danh Mục Mô Hình AI (AI Weights Inventory)](#2-danh-mục-mô-hình-ai-ai-weights-inventory)
 3. [Cấu Trúc Thư Mục `server_module/`](#3-cấu-trúc-thư-mục-server_module)
-4. [Hướng Dẫn Upload & Cài Đặt Trên Server](#4-hướng-dẫn-upload--cài-đặt-trên-server)
-5. [Hướng Dẫn Tích Hợp Python](#5-hướng-dẫn-tích-hợp-python)
-6. [Hướng Dẫn Tích Hợp Với Server Node.js](#6-hướng-dẫn-tích-hợp-với-server-nodejs)
-7. [Cấu Trúc Báo Cáo Đầu Ra (JSON Report)](#7-cấu-trúc-báo-cáo-đầu-ra-json-report)
-8. [Dự Trù Tích Hợp Với Thiết Bị MCU Edge (ESP32-CAM)](#8-dự-trù-tích-hợp-với-thiết-bị-mcu-edge-esp32-cam)
+4. [Hướng Dẫn Cài Đặt & Triển Khai](#4-hướng-dẫn-cài-đặt--triển-khai)
+5. [Tích Hợp Trực Tiếp Với Python](#5-tích-hợp-trực-tiếp-với-python)
+6. [Tích Hợp Với Hệ Thống Node.js Backend](#6-tích-hợp-với-hệ-thống-nodejs-backend)
+7. [Cấu Trúc Báo Cáo & Dữ Liệu Đầu Ra](#7-cấu-trúc-báo-cáo--dữ-liệu-đầu-ra)
 
 ---
 
 ## 1. Kiến Trúc & Quy Trình Xử Lý AI
 
-Quy trình xử lý tuân thủ chặt chẽ lộ trình eKYC chuẩn FinTech/Ngân hàng từ `test_pipeline_full.py`:
+Quy trình xử lý tuân thủ chặt chẽ tiêu chuẩn eKYC FinTech/Ngân hàng với cơ chế **Fail-Fast Early Rejection**:
 
 ```mermaid
 flowchart TD
-    A[📷 Ảnh Đầu Vào: File / Base64 / Bytes / Frame] --> B[1. Face Detection - YOLO Face_Detection.pt]
+    A[📷 Frame Đầu Vào: File / Base64 / Bytes / Camera Stream] --> B[1. Face Detection - YOLO Face]
     B --> C{Số lượng khuôn mặt?}
     C -->|0 Mặt| X1[❌ Từ chối: Không có mặt]
-    C -->|Nhiều Mặt| D[Chọn Primary Face: Lớn nhất & Gần tâm nhất]
-    C -->|1 Mặt| D
-    D --> E[2. Face Landmark - MediaPipe 478 điểm]
-    E --> F[3. 3D Pose Validation - PnP Yaw / Pitch / Roll]
-    F --> G[4. Face Alignment & Crop 224x224 chuẩn hóa]
-    G --> H[5. Anti-Spoofing YOLO - Quét toàn khung & Ghép IoU với Primary Face]
-    H --> I[6. Active Liveness - Blink EAR & Head Movement]
-    I --> J{Đánh giá 6 Tiêu Chí An Toàn}
-    J -->|Đạt Toàn Bộ| K[✅ APPROVED - HỢP LỆ]
-    J -->|Vi Phạm| L[❌ REJECTED - Kèm lý do chi tiết]
-    K --> M[💾 Xuất Report JSON & Lưu ảnh Crop / HUD]
-    L --> M
+    C -->|Nhiều Mặt| X2[❌ Từ chối: Phát hiện nhiều người]
+    C -->|1 Mặt Duy Nhất| D[2. Face Landmark - MediaPipe 478 3D Points]
+    D --> E[3. 3D Pose Validation - SolvePnP Euler Yaw / Pitch / Roll]
+    E --> F[4. Golden Ratio Oval Fitting & Occlusion Defense YOLO26n 640px]
+    F -->|Đeo Kính / Khẩu Trang| X3[❌ CẢNH BÁO: Yêu cầu tháo kính / khẩu trang]
+    F -->|Mặt Chuẩn Trần| G[5. Active Liveness: Chớp Mắt Tự Nhiên & Quay Đầu Ngẫu Nhiên]
+    G -->|Thất bại / Hết giờ| X4[❌ Từ chối: Thất bại thử thách liveness]
+    G -->|Đạt thử thách| H[6. Dual-Model Ensemble Anti-Spoofing: YOLO_4 + RF-DETR Small ONNX]
+    H --> I[7. Face Descriptor Identity Matching: Cosine Distance Stage 1 vs Stage 4]
+    I --> J{Đánh Giá Tổng Hợp}
+    J -->|Đạt Toàn Bộ| K[✅ APPROVED - Mở Khóa / Gửi Webhook]
+    J -->|Vi Phạm Tiêu Chí| L[❌ REJECTED - Kèm lý do chi tiết]
 ```
 
-### 6 Tiêu chí an toàn bắt buộc:
+### Các tiêu chí an toàn bắt buộc:
 1. **`face_detected`**: Có mặt người trong khung hình.
-2. **`single_face`**: Duy nhất 1 người (không bị người đứng sau xen vào).
-3. **`pose_valid`**: Góc mặt thẳng chuẩn (Yaw $\le 25^\circ$, Pitch $\le 20^\circ$, Roll $\le 15^\circ$, không ngồi quá xa).
-4. **`anti_spoof_real`**: YOLO Anti-Spoof xác nhận `REAL` (loại bỏ màn hình điện thoại, ảnh in giấy, video replay).
-5. **`blink_passed`**: Người dùng có chớp mắt tự nhiên (đo bằng tỷ lệ co giãn mí mắt EAR).
-6. **`head_movement_passed`**: Hoàn thành thử thách cử động đầu ngẫu nhiên (Quay trái / Quay phải).
+2. **`single_face`**: Duy nhất 1 người (không bị người đứng sau/xen vào).
+3. **`pose_valid`**: Góc mặt thẳng chuẩn (Yaw $\le 20^\circ$, Pitch $\le 18^\circ$, Roll $\le 15^\circ$).
+4. **`face_in_oval`**: Khuôn mặt nằm trọn vẹn trong khung oval tỷ lệ vàng ($45\% - 85\%$ diện tích oval).
+5. **`occlusion_free`**: Tuyệt đối không đeo kính (kính cận trong suốt, gọng mảnh, kính râm) và khẩu trang.
+6. **`blink_passed`**: Người dùng chớp mắt tự nhiên (đo tỷ lệ co giãn mí mắt EAR qua 478 landmarks).
+7. **`head_movement_passed`**: Người dùng thực hiện quay đầu theo hướng chỉ định ($\Delta \text{Yaw} \ge 6.5^\circ$).
+8. **`anti_spoof_real`**: Cụm Ensemble (YOLO_4 + RF-DETR Small) đồng thuận xác nhận `REAL` (0.00% APCER).
+9. **`same_identity`**: Khuôn mặt ở Stage 1 và Stage 4 thuộc cùng một người (Cosine Distance $\le 0.40$).
 
 ---
 
-## 2. Danh Sách Mô Hình AI (YOLO Weights)
+## 2. Danh Mục Mô Hình AI (AI Weights Inventory)
 
-Module sử dụng các file weights đặt tại thư mục `models/` (ngang cấp với `server_module/`):
+Hệ thống hoạt động **100% Offline** tại máy chủ nội bộ mà không phụ thuộc vào bất kỳ dịch vụ đám mây bên ngoài nào:
 
-| Tên File Model | Vị Trí Mặc Định | Nhiệm Vụ |
-|:---|:---|:---|
-| Tên File Model | Vị Trí Nội Bộ Trong Module | Nhiệm Vụ |
-|:---|:---|:---|
-| **`Face_Detection.pt`** | `server_module/models/Face_Detection.pt` | Phát hiện bounding box toàn bộ khuôn mặt trong ảnh với tốc độ cao. |
-| **`Anti_Spoof_YOLO.pt`** | `server_module/models/Anti_Spoof_YOLO.pt` | Mô hình YOLO Anti-Spoofing phân biệt mặt người thật và giả mạo (Fake/Spoof). |
-| **`face_landmarker.task`** | `server_module/models/face_landmarker.task` | Trích xuất 478 tọa độ 3D landmarks phục vụ căn chỉnh mắt, đo góc và đo EAR chớp mắt. |
+| Tên File Model | Vị Trí Trong `server_module/models/` | Kích Thước | Nhiệm Vụ Kỹ Thuật |
+| :--- | :--- | :---: | :--- |
+| **`Face_Detection.pt`** | `models/Face_Detection.pt` | ~6 MB | Mô hình YOLOv8 Face phát hiện vị trí khuôn mặt với tốc độ cao. |
+| **`face_landmarker.task`** | `models/face_landmarker.task` | ~3.8 MB | Trích xuất 478 tọa độ 3D landmarks phục vụ đo EAR chớp mắt và giải PnP 3D Pose. |
+| **`yolo_anti_spoof_v4_official.pt`** | `models/anti_spoof/yolo/...` | ~6.2 MB | Mô hình 1 của cụm Ensemble: YOLO_4 CNN phân biệt ảnh in 2D, màn hình điện thoại/laptop. |
+| **`weights.onnx` (RF-DETR)** | `models/anti_spoof/rf_detr/rfdetr_small_official/...` | ~108 MB | Mô hình 2 của cụm Ensemble: RF-DETR Small Transformer phát hiện gian lận chiều sâu sinh trắc học. |
+| **`weights.onnx` (YOLO26n)** | `models/face_occlusion/yolo26n_glass_and_mask_official/...` | ~9.8 MB | YOLO26n Occlusion phân loại chuẩn 4 classes (`glass`, `mask`, `no_glass`, `no_mask`). |
 
 ---
 
-## 3. Cấu Trúc Thư Mục Tự Đóng Gói (100% Self-Contained)
+## 3. Cấu Trúc Thư Mục `server_module/`
 
-```
+```text
 server_module/
 │
-├── models/                           # [ĐÃ COPY SẴN] Toàn bộ file weights AI cần thiết
-│   ├── Face_Detection.pt             # YOLO Face Detection
-│   ├── Anti_Spoof_YOLO.pt            # YOLO Anti-Spoofing
-│   └── face_landmarker.task          # MediaPipe 478 Landmarks
+├── app.py                     # FastAPI REST API Hub (:8000)
+├── pipeline_server.py         # Lõi Pipeline thẩm định 8 tiêu chí eKYC & Fail-Fast Gate
+├── config.py                  # File cấu hình tham số trung tâm
+├── nodejs_server_receiver.js  # Node.js Stream Ingest & Relay Hub (:3000)
+├── nodejs_client_example.js   # Code mẫu gọi API từ Node.js Backend (Native fetch)
+├── package.json               # Cấu hình dự án Node.js (0 npm dependencies)
 │
-├── components/                       # [ĐÃ ĐÓNG GÓI NỘI BỘ] Các thành phần xử lý hình học & cử động
-│   ├── __init__.py
-│   ├── face_detection/               # Bộ phát hiện khuôn mặt
-│   ├── landmark_detection/           # Bộ trích xuất landmarks MediaPipe
-│   ├── pose_validation/              # Bộ tính toán góc xoay 3D Euler (Yaw/Pitch/Roll)
-│   ├── face_alignment_crop/          # Bộ căn chỉnh Affine và crop chuẩn 224x224
-│   └── head_movement/                # Bộ quản lý thử thách quay đầu ngẫu nhiên
+├── components/                # Thư viện thành phần Computer Vision nội bộ
+│   ├── face_detection/               # YOLO Face Detector
+│   ├── landmark_detection/           # MediaPipe 478 Landmarks Engine
+│   ├── pose_validation/              # SolvePnP 3D Head Pose
+│   ├── face_alignment_crop/          # Affine Align & Oval Fit Check
+│   ├── face_occlusion_detector.py     # YOLO26n Glass & Mask Defense
+│   ├── ensemble_anti_spoof.py        # Ensemble YOLO_4 + RF-DETR
+│   ├── local_onnx_models.py          # ORT Inference Runners (100% Offline)
+│   ├── identity_verifier.py          # Face Embedding Matching
+│   └── head_movement/                # Head Movement Challenge Manager
 │
-├── __init__.py                       # Khởi tạo package, export EKYCPipelineServer, AntiSpoofYoloDetector
-├── config.py                         # Cấu hình đường dẫn model, các ngưỡng góc Pose, EAR và timeout
-├── pipeline_server.py                # Core Engine: Đóng gói toàn bộ quy trình AI
-├── anti_spoof_yolo.py                # Wrapper chuyên biệt cho Anti_Spoof_YOLO.pt
-├── utils.py                          # Nạp ảnh đa năng (File/Base64/Bytes), tính IoU, EAR, vẽ HUD
-├── runner.py                         # CLI & IPC Bridge cho Node.js gọi qua child_process (JSON in/out)
-└── README.md                         # Tài liệu hướng dẫn sử dụng và tích hợp
+├── models/                    # Lưu trữ toàn bộ file weights AI (.pt, .task, .onnx)
+└── static/
+    ├── index.html             # Giao diện Web Full Debug HUD & Telemetry
+    └── simple.html            # Giao diện Web Kiosk Tinh Gọn (Khung Oval & Mũi tên động)
 ```
 
 ---
 
-## 4. Hướng Dẫn Upload & Cài Đặt Trên Server
+## 4. Hướng Dẫn Cài Đặt & Triển Khai
 
-### Bước 1: Copy DUY NHẤT thư mục `server_module/` lên server
-Do toàn bộ mô hình weights và components đã được đóng gói khép kín bên trong, bạn **chỉ cần copy duy nhất thư mục `server_module/`** lên máy chủ production (không phụ thuộc vào bất kỳ file nào bên ngoài).
-
-### Bước 2: Cài đặt thư viện phụ thuộc
-Chạy lệnh sau trên máy chủ (Ubuntu/Linux hoặc Windows Server):
+### Bước 1: Cài đặt thư viện Python phụ thuộc
+Chạy lệnh sau trên máy chủ (Linux / Windows Server):
 ```bash
-pip install opencv-python-headless numpy ultralytics mediapipe torch torchvision
+pip install -r ../requirements.txt
 ```
+
+### Bước 2: Tùy chọn tăng tốc GPU với ONNX Runtime (Nếu có card đồ họa)
+- Trên Windows (DirectX 12 cho AMD / Intel / NVIDIA):
+  ```bash
+  pip install onnxruntime-directml
+  ```
+- Trên Linux / Windows có GPU NVIDIA CUDA:
+  ```bash
+  pip install onnxruntime-gpu
+  ```
+
+### Bước 3: Khởi chạy dịch vụ
+```bash
+python -m uvicorn server_module.app:app --host 0.0.0.0 --port 8000 --workers 1
+```
+
+Sau khi khởi chạy:
+- **Giao diện Kiosk**: [http://localhost:8000/simple](http://localhost:8000/simple)
+- **Giao diện Kỹ thuật**: [http://localhost:8000/](http://localhost:8000/)
+- **Swagger API Docs**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
 ---
 
-## 5. Hướng Dẫn Tích Hợp Python
+## 5. Tích Hợp Trực Tiếp Với Python
 
-Nếu server của bạn viết bằng Python, bạn có thể import trực tiếp như một thư viện nội bộ:
+Nếu hệ thống backend của bạn viết bằng Python, bạn có thể gọi trực tiếp module nội bộ:
 
 ```python
 from server_module import EKYCPipelineServer
+import cv2
 
-# 1. Khởi tạo pipeline server (tự động load YOLO models)
-server = EKYCPipelineServer()
+# 1. Khởi tạo pipeline server (tự động load tất cả mô hình AI)
+pipeline = EKYCPipelineServer()
 
-# 2. Kiểm tra tư thế trước khi chụp (Pre-capture check)
-pose_result = server.validate_pose("path/to/preview_frame.jpg")
-print("Tư thế hợp lệ:", pose_result["is_valid"])
-print("Hướng dẫn:", pose_result["guide"])
+# 2. Căn chỉnh khuôn mặt & kiểm tra kính mắt / khẩu trang từ khung hình camera
+frame = cv2.imread("frame.jpg")
+align_result = pipeline.validate_face_alignment(frame)
+print("Trong khung Oval:", align_result["fit_oval"])
+print("Bị che mặt/Đeo kính:", align_result["is_occluded"])
+print("Hướng dẫn:", align_result["message"])
 
-# 3. Kiểm tra chống giả mạo tĩnh (Passive Anti-Spoofing)
-spoof_result = server.check_antispoof("path/to/captured_image.jpg")
-print("Là người thật:", spoof_result["is_real"])
-print("Độ tự tin:", spoof_result["confidence"])
-
-# 4. Chạy toàn bộ quy trình tổng hợp eKYC
-report = server.full_verify(
-    image_input="path/to/captured_image.jpg",
-    img_id="user_12345",
+# 3. Thẩm định tổng hợp cuối cùng qua Ensemble Anti-Spoofing
+verify_result = pipeline.verify_identity(
+    frame=frame,
+    img_id="USER_001",
+    user_id="ID_9999",
     blink_passed=True,
     head_movement_passed=True,
-    output_dir="output/"  # Tự động xuất ảnh kết quả kèm HUD và file 4_report.json
+    head_action_name="TURN_LEFT"
 )
-
-print("Kết quả duyệt:", report["final_decision"]["verdict"])  # "APPROVED" hoặc "REJECTED"
+print("Kết quả duyệt:", verify_result["final_decision"]["verdict"]) # APPROVED / REJECTED
 ```
 
 ---
 
-## 6. Hướng Dẫn Tích Hợp Với Server Node.js
+## 6. Tích Hợp Với Hệ Thống Node.js Backend
 
-Nếu Server chính của bạn được viết bằng **Node.js**, bạn có thể gọi `server_module` thông qua cầu nối **`runner.py`** bằng module có sẵn `child_process`:
-
-### Code mẫu trong Node.js:
+Dự án cung cấp sẵn tệp mẫu [**`nodejs_client_example.js`**](nodejs_client_example.js) minh họa cách gọi toàn bộ REST API của FastAPI AI Server từ Node.js (Express, NestJS, Fastify...) bằng **Native `fetch` và `FormData`** chuẩn của Node.js 18+:
 
 ```javascript
-const { spawn } = require('child_process');
-const path = require('path');
+// Gửi ảnh sang FastAPI AI Server (:8000) để thẩm định
+async function verifyWithAI(imageFilePath) {
+  const fs = require('fs');
+  const path = require('path');
 
-/**
- * Gọi module Python E-KYC xử lý ảnh
- * @param {string} imagePathOrBase64 Đường dẫn ảnh hoặc chuỗi Base64
- * @param {string} action 'full_verify' | 'validate_pose' | 'check_antispoof'
- * @returns {Promise<Object>} Kết quả phân tích JSON từ AI
- */
-function runEkycAI(imagePathOrBase64, action = 'full_verify') {
-    return new Promise((resolve, reject) => {
-        const pythonProcess = spawn('python', [
-            '-m', 'server_module.runner',
-            '--action', action,
-            '--input', imagePathOrBase64,
-            '--img-id', Date.now().toString()
-        ]);
+  const fileBuffer = fs.readFileSync(imageFilePath);
+  const fileBlob = new Blob([fileBuffer], { type: 'image/jpeg' });
 
-        let outputData = '';
-        let errorData = '';
+  const formData = new FormData();
+  formData.append('file', fileBlob, path.basename(imageFilePath));
+  formData.append('img_id', `TX_${Date.now()}`);
+  formData.append('user_id', 'USER_12345');
+  formData.append('blink_passed', 'true');
+  formData.append('head_passed', 'true');
+  formData.append('head_action', 'TURN_LEFT');
 
-        pythonProcess.stdout.on('data', (data) => {
-            outputData += data.toString('utf8');
-        });
+  const response = await fetch('http://127.0.0.1:8000/api/v1/verify', {
+    method: 'POST',
+    body: formData
+  });
 
-        pythonProcess.stderr.on('data', (data) => {
-            errorData += data.toString('utf8');
-        });
-
-        pythonProcess.on('close', (code) => {
-            if (code !== 0) {
-                return reject(new Error(`Python process exited with code ${code}: ${errorData}`));
-            }
-            try {
-                const jsonResult = JSON.parse(outputData.trim());
-                resolve(jsonResult);
-            } catch (err) {
-                reject(new Error(`Failed to parse AI JSON response: ${err.message}`));
-            }
-        });
-    });
+  const result = await response.json();
+  console.log('Phán quyết AI:', result.final_decision.verdict); // "APPROVED" hoặc "REJECTED"
+  return result;
 }
-
-// Ví dụ sử dụng trong route Express.js / Fastify:
-// app.post('/api/verify', async (req, res) => {
-//     const result = await runEkycAI(req.body.image_base64, 'full_verify');
-//     res.json(result);
-// });
 ```
 
 ---
 
-## 7. Cấu Trúc Báo Cáo & Địa Chỉ Lưu Kết Quả (Output Paths)
+## 7. Cấu Trúc Báo Cáo & Dữ Liệu Đầu Ra
 
-Khi chạy `full_verify(..., output_dir="output/")` hoặc gọi qua lệnh CLI/Node.js `runner.py --output-dir output/`, toàn bộ kết quả và bằng chứng eKYC sẽ được tự động tổ chức tại các đường dẫn sau:
-
-### 📍 Sơ Đồ Cây Thư Mục & Đường Dẫn Cụ Thể (Directory Map):
-
-```
-<output_dir>/                           # Mặc định là: output/ (hoặc đường dẫn bạn truyền vào)
-│
-├── batch_summary_v4.csv                # 📄 FILE TỔNG KẾT CSV: <output_dir>/batch_summary_v4.csv
-│
-└── <img_id>/                           # 📁 THƯ MỤC RIÊNG CỦA MỖI LƯỢT: <output_dir>/<img_id>/
-    │                                   # (Ví dụ: output/1/, output/user_12345/, output/test_0/)
-    │
-    ├── 0_raw_image.jpg                 # 🖼️ Ảnh gốc đầu vào: <output_dir>/<img_id>/0_raw_image.jpg
-    ├── 1_pipeline_result.jpg           # 🖼️ Ảnh kết quả kèm HUD Dashboard: <output_dir>/<img_id>/1_pipeline_result.jpg
-    ├── 1_pipeline_result_clean.jpg     # 🖼️ Ảnh kết quả sạch (Badge duyệt): <output_dir>/<img_id>/1_pipeline_result_clean.jpg
-    ├── 2_face_crop_224.jpg             # 🖼️ Ảnh mặt căn chỉnh crop 224x224: <output_dir>/<img_id>/2_face_crop_224.jpg
-    ├── 3_aligned_full.jpg              # 🖼️ Toàn cảnh xoay thẳng mắt: <output_dir>/<img_id>/3_aligned_full.jpg
-    ├── 4_report.json                   # 📋 Báo cáo JSON kỹ thuật chi tiết: <output_dir>/<img_id>/4_report.json
-    │
-    └── all_faces_cropped/              # 📁 Thư mục lưu riêng từng mặt: <output_dir>/<img_id>/all_faces_cropped/
-        ├── face_1.jpg                  # 🖼️ Khuôn mặt thứ 1: .../all_faces_cropped/face_1.jpg
-        ├── face_2.jpg                  # 🖼️ Khuôn mặt thứ 2 (nếu có): .../all_faces_cropped/face_2.jpg
-        └── ...
-```
-
-### 📋 Bảng Tra Cứu Đường Dẫn Nhanh (Path Lookup Table):
-
-| Tên File | Đường Dẫn Tương Đối (Path) | Mục Đích Sử Dụng |
-|:---|:---|:---|
-| **File Báo Cáo JSON** | `<output_dir>/<id>/4_report.json` | Cho Server Node.js đọc lại thông số chi tiết của lượt xác thực. |
-| **Ảnh Gốc Đối Soát** | `<output_dir>/<id>/0_raw_image.jpg` | Lưu trữ làm bằng chứng pháp lý eKYC ban đầu. |
-| **Ảnh Dashboard HUD** | `<output_dir>/<id>/1_pipeline_result.jpg` | Hiển thị lên giao diện Admin / Giám sát viên xem chi tiết các góc Pose và điểm Spoof. |
-| **Ảnh Kết Quả Sạch** | `<output_dir>/<id>/1_pipeline_result_clean.jpg` | Gửi trả về cho ứng dụng Client / App người dùng xem trực quan. |
-| **Ảnh Khuôn Mặt 224x224** | `<output_dir>/<id>/2_face_crop_224.jpg` | Ảnh đã chuẩn hóa trục mắt, có thể dùng tiếp cho module nhận diện danh tính (Face Recognition). |
-| **Ảnh Căn Chỉnh Full** | `<output_dir>/<id>/3_aligned_full.jpg` | Ảnh toàn cảnh sau phép quay Affine cân bằng 2 đồng tử mắt nằm ngang. |
-| **Tất Cả Mặt Trong Khung** | `<output_dir>/<id>/all_faces_cropped/face_*.jpg` | Dùng để kiểm tra đối soát khi hệ thống phát hiện nhiều người cùng xuất hiện. |
-| **File Tổng Hợp Thống Kê** | `<output_dir>/batch_summary_v4.csv` | File CSV dùng mở bằng Microsoft Excel / Google Sheets để thống kê tỷ lệ Đạt/Hỏng theo ngày. |
-
----
-
-### Cấu trúc file JSON chi tiết (`4_report.json`):
+Khi hoàn thành thẩm định, hệ thống xuất báo cáo JSON chi tiết cấu trúc chuẩn:
 
 ```json
 {
-  "image_id": "1",
-  "timestamp": "2026-09-06 14:00:00",
+  "image_id": "USER_001",
+  "timestamp": "2026-10-04 11:00:00",
   "final_decision": {
     "approved": true,
     "verdict": "APPROVED",
@@ -261,35 +211,24 @@ Khi chạy `full_verify(..., output_dir="output/")` hoặc gọi qua lệnh CLI/
     "face_detected": true,
     "single_face": true,
     "pose_valid": true,
-    "anti_spoof_real": true,
+    "face_in_oval": true,
+    "occlusion_free": true,
     "blink_passed": true,
-    "head_movement_passed": true
-  },
-  "face_detection": {
-    "num_faces": 1,
-    "primary_face": {
-      "bbox": [180, 110, 460, 480],
-      "confidence": 0.925
-    }
-  },
-  "pose_3d": {
-    "is_valid": true,
-    "message": "Valid Pose",
-    "yaw": 1.5,
-    "pitch": -2.1,
-    "roll": 0.8
-  },
-  "anti_spoof_yolo": {
-    "label": "REAL",
-    "is_real": true,
-    "confidence": 0.942,
-    "primary_iou": 0.885,
-    "has_any_spoof_in_frame": false
-  },
-  "active_liveness": {
-    "blink_passed": true,
-    "blink_count": 1,
     "head_movement_passed": true,
-    "head_action": "TURN_LEFT"
+    "anti_spoof_real": true,
+    "same_identity": true
+  },
+  "ensemble_anti_spoof": {
+    "label": "REAL",
+    "confidence": 0.942,
+    "yolo_detail": "REAL (0.95)",
+    "rfdetr_detail": "real (0.93)",
+    "agreement": true
+  },
+  "identity_match": {
+    "same_person": true,
+    "distance": 0.185,
+    "threshold": 0.400
   }
 }
+```

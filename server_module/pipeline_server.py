@@ -1639,7 +1639,9 @@ class EKYCPipelineServer:
             ens_latency_ms = (time.time() - t_ens) * 1000
 
             # Lọc spoof detections trong oval (lược bỏ hoàn toàn detections ngoài oval)
-            spoofs_in_oval = [sd for sd in all_ensemble_dets if is_face_in_oval(sd["bbox"], oval_center, oval_axes)]
+            spoofs_in_oval = [sd for sd in all_ensemble_dets if is_face_in_oval(sd["bbox"], oval_center, oval_axes, tolerance=1.30)]
+            if not spoofs_in_oval and all_ensemble_dets:
+                spoofs_in_oval = all_ensemble_dets
             target_spoofs = spoofs_in_oval
 
             # Tìm detection khớp nhất với Primary Face
@@ -1751,14 +1753,22 @@ class EKYCPipelineServer:
             and c_occlusion_free
         )
 
+        is_spoof_failure = bool(not c_spoof or not c_both_detected or best_spoof is None) if not has_prior_failure else False
+
         # Xây dựng kết quả chi tiết
         result_report = {
             "image_id": img_id,
             "timestamp": time.strftime("%Y-%m-%d %H:%M:%S"),
+            "approved": final_pass,
+            "verdict": "APPROVED" if final_pass else "REJECTED",
+            "is_spoof_failure": is_spoof_failure,
+            "can_retry": True,
             "final_decision": {
                 "approved": final_pass,
                 "verdict": "APPROVED" if final_pass else "REJECTED",
-                "reasons": reasons
+                "reasons": reasons,
+                "is_spoof_failure": is_spoof_failure,
+                "can_retry": True
             },
             "criteria": {
                 "face_detected": bool(c_face),

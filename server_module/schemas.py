@@ -136,12 +136,15 @@ class CriteriaDetail(BaseModel):
     blink_passed: bool = Field(..., description="6. Hoàn thành chớp mắt")
     head_movement_passed: bool = Field(..., description="7. Hoàn thành quay đầu")
     same_person_verified: Optional[bool] = Field(default=True, description="8. Xác thực cùng một người giữa các bước (Chống tráo đổi người)")
+    no_face_occlusion: Optional[bool] = Field(default=True, description="9. Không bị che mặt / đeo kính")
 
 
 class FinalDecision(BaseModel):
     approved: bool = Field(..., description="Kết luận cuối cùng: Đạt hay Không đạt")
     verdict: str = Field(..., description="APPROVED hoặc REJECTED")
     reasons: List[str] = Field(default_factory=list, description="Danh sách lý do bị từ chối nếu có")
+    is_spoof_failure: Optional[bool] = Field(default=False, description="Đánh dấu lỗi tại bước Anti-Spoofing")
+    can_retry: Optional[bool] = Field(default=True, description="Cho phép làm lại")
 
 
 class VerifyResponse(BaseModel):
@@ -154,6 +157,8 @@ class VerifyResponse(BaseModel):
     is_real: bool = Field(..., description="Người thật (True) hay Giả mạo (False)")
     confidence: float = Field(..., description="Độ tin cậy chống giả mạo (0.0 - 1.0)")
     reasons: List[str] = Field(default_factory=list, description="Lý do từ chối (nếu rejected)")
+    is_spoof_failure: Optional[bool] = Field(default=False, description="Đánh dấu lỗi tại bước Anti-Spoofing")
+    can_retry: Optional[bool] = Field(default=True, description="Cho phép làm lại")
     final_decision: Optional[FinalDecision] = Field(default=None, description="Khối quyết định tổng kết")
     criteria: CriteriaDetail = Field(..., description="Chi tiết 8 tiêu chuẩn đánh giá eKYC")
     face_detection: FaceDetectionDetail = Field(..., description="Dữ liệu phát hiện khuôn mặt")

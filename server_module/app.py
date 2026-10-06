@@ -467,10 +467,14 @@ async def verify_face(
         is_real=ens_info["is_real"],
         confidence=ens_info["confidence"],
         reasons=final_dec.get("reasons", []),
+        is_spoof_failure=report.get("is_spoof_failure", False),
+        can_retry=report.get("can_retry", True),
         final_decision=FinalDecision(
             approved=final_dec["approved"],
             verdict=final_dec["verdict"],
-            reasons=final_dec.get("reasons", [])
+            reasons=final_dec.get("reasons", []),
+            is_spoof_failure=report.get("is_spoof_failure", False),
+            can_retry=report.get("can_retry", True)
         ),
         criteria=report["criteria"],
         face_detection=report["face_detection"],

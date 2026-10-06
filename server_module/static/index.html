@@ -3331,7 +3331,7 @@
           pillPitch.textContent = 'THẲNG';
         } else if (absPitch <= 30) {
           pillPitch.className = 'telemetry-pill warn';
-          pillPitch.textContent = pitch > 0 ? 'NGẨNG ĐẦU' : 'CÚI ĐẦU';
+          pillPitch.textContent = pitch > 0 ? 'CÚI ĐẦU' : 'NGẨNG ĐẦU';
         } else {
           pillPitch.className = 'telemetry-pill fail';
           pillPitch.textContent = 'QUÁ LỆCH';
@@ -3383,7 +3383,7 @@
           } else if (absYaw > 14) {
             hint.textContent = yaw > 0 ? 'Quay mặt sang trái một chút' : 'Quay mặt sang phải một chút';
           } else if (absPitch > 16) {
-            hint.textContent = pitch > 0 ? 'Hạ cằm xuống nhìn thẳng ngang tầm mắt' : 'Nâng cằm lên nhìn thẳng ngang tầm mắt';
+            hint.textContent = pitch > 0 ? 'Nâng cằm lên nhìn thẳng ngang tầm mắt' : 'Hạ cằm xuống nhìn thẳng ngang tầm mắt';
           } else if (absRoll > 14) {
             hint.textContent = 'Giữ thẳng đầu, không nghiêng sang bên';
           } else {
